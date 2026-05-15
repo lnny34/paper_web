@@ -10,16 +10,28 @@ const outputFile = path.join(rootDir, "public", "data", "papers.json");
 const ARXIV_ENDPOINT = "https://export.arxiv.org/api/query";
 const OPENALEX_ENDPOINT = "https://api.openalex.org/works";
 const OPENALEX_ARXIV_SOURCE = "S4306400194";
-const MAX_PER_TRACK = Number(process.env.PAPER_MAX_RESULTS || 18);
-const TOTAL_LIMIT = Number(process.env.PAPER_TOTAL_LIMIT || 42);
-const LOOKBACK_DAYS = Number(process.env.PAPER_LOOKBACK_DAYS || 180);
+const MAX_PER_QUERY = Number(process.env.PAPER_MAX_RESULTS || 24);
+const TOTAL_LIMIT = Number(process.env.PAPER_TOTAL_LIMIT || 180);
+const LOOKBACK_DAYS = Number(process.env.PAPER_LOOKBACK_DAYS || 365);
+const MIN_PER_TRACK = Number(process.env.PAPER_MIN_PER_TRACK || 28);
+const REQUEST_DELAY_MS = Number(process.env.PAPER_REQUEST_DELAY_MS || 260);
 
 const tracks = [
   {
     id: "recsys",
     label: "推荐系统",
     accent: "#2f7d67",
-    openAlexQuery: "recommender system recommendation ranking retrieval sequential recommendation",
+    lookbackDays: 540,
+    openAlexQueries: [
+      "recommender systems",
+      "sequential recommendation",
+      "session based recommendation",
+      "learning to rank recommendation",
+      "retrieval recommendation ranking",
+      "graph neural network recommendation",
+      "personalized recommendation",
+      "candidate generation recommendation",
+    ],
     query:
       'all:"recommender system" OR all:"recommendation model" OR all:"sequential recommendation" OR all:"ranking model"',
   },
@@ -27,9 +39,17 @@ const tracks = [
     id: "search-ads",
     label: "搜索广告",
     accent: "#c55a2e",
-    lookbackDays: 365,
-    allowBroadFallback: true,
-    openAlexQuery: "sponsored search search advertising ad ranking advertising auction ctr cvr",
+    lookbackDays: 1095,
+    openAlexQueries: [
+      "sponsored search advertising",
+      "search advertising auction",
+      "ad ranking click through rate prediction",
+      "conversion rate prediction advertising",
+      "real time bidding advertising",
+      "budget pacing autobidding",
+      "generative advertising large language model",
+      "online advertising performance optimization",
+    ],
     query:
       'all:"sponsored search" OR all:"search advertising" OR all:"ad ranking" OR all:"advertising auction"',
   },
@@ -37,7 +57,18 @@ const tracks = [
     id: "llm",
     label: "大模型",
     accent: "#5e6ad2",
-    openAlexQuery: "large language model LLM foundation model instruction tuning alignment",
+    lookbackDays: 240,
+    openAlexQueries: [
+      "large language model",
+      "foundation model",
+      "instruction tuning",
+      "preference optimization alignment",
+      "retrieval augmented generation",
+      "long context language model",
+      "multimodal large language model",
+      "large language model agent",
+      "efficient inference large language model",
+    ],
     query:
       'all:"large language model" OR all:"LLM" OR all:"foundation model" OR all:"instruction tuning"',
   },
@@ -45,7 +76,17 @@ const tracks = [
     id: "llm-recsys",
     label: "LLM x 推荐广告",
     accent: "#9b6b2f",
-    openAlexQuery: "large language model recommendation advertising generative recommendation LLM recommender",
+    lookbackDays: 540,
+    openAlexQueries: [
+      "large language model recommendation",
+      "LLM recommender system",
+      "generative recommendation",
+      "language model user modeling recommendation",
+      "large language model search advertising",
+      "LLM advertising",
+      "LLM e-commerce recommendation",
+      "LLM generative recommendation",
+    ],
     query:
       '(all:"large language model" AND all:"recommendation") OR (all:"LLM" AND all:"advertising") OR (all:"generative recommendation")',
   },
@@ -68,7 +109,79 @@ const keywordSignals = [
   ["graph", "图学习"],
   ["distillation", "蒸馏"],
   ["preference", "偏好建模"],
+  ["autobidding", "自动出价"],
+  ["budget", "预算控制"],
+  ["long context", "长上下文"],
+  ["agentic", "智能体"],
 ];
+
+const trackSignals = {
+  recsys: [
+    "recommendation system",
+    "recommendation systems",
+    "recommendation model",
+    "recommendation models",
+    "personalized recommendation",
+    "sequential recommendation",
+    "recommender",
+    "recommenders",
+    "recommender system",
+    "recommender systems",
+    "learning to rank",
+    "collaborative filtering",
+    "user modeling",
+    "candidate generation",
+    "next-basket",
+    "session-based",
+  ],
+  "search-ads": [
+    "search advertising",
+    "online advertising",
+    "personalized advertising",
+    "paid advertising",
+    "computational advertising",
+    "google ads",
+    "ppc",
+    "ad campaign",
+    "ad campaigns",
+    "sponsored search",
+    "ad auction",
+    "advertising auction",
+    "second-price auction",
+    "ad ranking",
+    "ctr",
+    "cvr",
+    "conversion rate",
+    "click-through",
+    "autobidding",
+    "auto-bidding",
+    "budget pacing",
+    "real time bidding",
+  ],
+  llm: [
+    "large language model",
+    "large language models",
+    "llm",
+    "llms",
+    "foundation model",
+    "foundation models",
+    "instruction tuning",
+    "direct preference optimization",
+    "rlhf",
+    "rag",
+    "retrieval augmented generation",
+    "multimodal",
+    "long context",
+  ],
+  "llm-recsys": [
+    "large language model recommendation",
+    "large language models for recommendation",
+    "llm recommender",
+    "generative recommendation",
+    "llm advertising",
+    "e-commerce recommendation",
+  ],
+};
 
 function normalizeArray(value) {
   if (!value) return [];
@@ -103,16 +216,57 @@ function cleanText(value = "") {
   return String(value).replace(/\s+/g, " ").trim();
 }
 
+function hasSignal(text, signal) {
+  const escaped = signal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  const pattern = new RegExp(`(^|[^a-z0-9])${escaped}s?([^a-z0-9]|$)`, "i");
+  return pattern.test(text);
+}
+
 function pickKeywords(text) {
   const lower = text.toLowerCase();
   return keywordSignals
-    .filter(([needle]) => lower.includes(needle))
+    .filter(([needle]) => hasSignal(lower, needle))
     .slice(0, 6)
     .map(([, label]) => label);
 }
 
+function scoreTrack(text, trackId) {
+  const lower = text.toLowerCase();
+  const scoreSignalSet = (signals) => signals.reduce((score, signal) => score + (hasSignal(lower, signal) ? 1 : 0), 0);
+
+  if (trackId === "llm-recsys") {
+    const base = scoreSignalSet(trackSignals["llm-recsys"]);
+    const hasLlm = scoreSignalSet(trackSignals.llm) > 0;
+    const hasRecsysOrAds = scoreSignalSet([
+      "recommendation system",
+      "recommendation systems",
+      "recommender system",
+      "recommender systems",
+      "generative recommendation",
+      "e-commerce recommendation",
+      "recommender",
+      "recommenders",
+      "advertising",
+      "advertisement",
+      "ads",
+      "sponsored search",
+    ]) > 0;
+    return base + (hasLlm && hasRecsysOrAds ? 2 : 0);
+  }
+
+  return scoreSignalSet(trackSignals[trackId] || []);
+}
+
 function inferTrack(text, fallbackTrack) {
   const lower = text.toLowerCase();
+  const scoredTrack = tracks
+    .map((track) => ({ id: track.id, score: scoreTrack(lower, track.id) }))
+    .sort((a, b) => b.score - a.score)[0];
+
+  if (scoredTrack?.score >= 2) {
+    return scoredTrack.id;
+  }
+
   if (lower.includes("sponsored search") || lower.includes("advertising") || lower.includes("auction")) {
     return "search-ads";
   }
@@ -123,6 +277,48 @@ function inferTrack(text, fallbackTrack) {
     return "llm";
   }
   return fallbackTrack;
+}
+
+function normalizeTitle(title) {
+  return cleanText(title).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function isRelevantToTrack(paper, trackId) {
+  if (isLikelyNonResearch(paper)) {
+    return false;
+  }
+
+  return (
+    (paper.requestedCoreScore || 0) > 0 ||
+    ((paper.source || "").toLowerCase().includes("arxiv") && (paper.requestedTrackScore || 0) > 0)
+  );
+}
+
+function isLikelyNonResearch(paper) {
+  const title = normalizeTitle(paper.title);
+  const authors = normalizeArray(paper.authors).join(" ").toLowerCase();
+  const source = (paper.source || "").toLowerCase();
+
+  if (source.includes("arxiv")) {
+    return false;
+  }
+
+  const badTitleSignals = [
+    "complete guide",
+    "agency",
+    "agencies",
+    "find the right partner",
+    "services in",
+    "clone app",
+    "how digital marketing",
+  ];
+
+  return authors === "google ads" || badTitleSignals.some((signal) => title.includes(signal));
+}
+
+function qualityScore(paper) {
+  const sourceBoost = (paper.source || "").toLowerCase().includes("arxiv") ? 4 : 0;
+  return sourceBoost + (paper.coreRelevanceScore || 0) * 5 + (paper.requestedCoreScore || 0) * 3 + (paper.relevanceScore || 0);
 }
 
 function getLink(entry, type) {
@@ -291,6 +487,8 @@ function enrichEntry(entry, fallbackTrack) {
   const summary = cleanText(entry.summary);
   const authors = normalizeArray(entry.author).map((author) => cleanText(author.name)).filter(Boolean);
   const text = `${title} ${summary}`;
+  const requestedTrackScore = scoreTrack(text, fallbackTrack);
+  const requestedCoreScore = requestedTrackScore;
   const trackId = inferTrack(text, fallbackTrack);
   const track = tracks.find((item) => item.id === trackId) || tracks[0];
   const keywords = pickKeywords(text);
@@ -314,6 +512,11 @@ function enrichEntry(entry, fallbackTrack) {
       abstract: absUrl,
       pdf: pdfUrl,
     },
+    source: "arXiv",
+    relevanceScore: scoreTrack(text, track.id),
+    coreRelevanceScore: scoreTrack(text, track.id),
+    requestedTrackScore,
+    requestedCoreScore,
     deconstruction: {
       problem: buildProblem(summary, track.label),
       method: buildMethod(title, summary, keywords),
@@ -337,8 +540,11 @@ function enrichOpenAlexWork(work, fallbackTrack) {
     .filter(Boolean);
   const concepts = normalizeArray(work.concepts).map((concept) => concept.display_name).filter(Boolean);
   const keywords = normalizeArray(work.keywords).map((keyword) => keyword.display_name || keyword.keyword).filter(Boolean);
-  const text = `${title} ${summary} ${concepts.join(" ")} ${keywords.join(" ")}`;
-  const trackId = inferTrack(text, fallbackTrack);
+  const coreText = `${title} ${summary}`;
+  const text = `${coreText} ${concepts.join(" ")} ${keywords.join(" ")}`;
+  const requestedTrackScore = scoreTrack(text, fallbackTrack);
+  const requestedCoreScore = scoreTrack(coreText, fallbackTrack);
+  const trackId = inferTrack(coreText, fallbackTrack);
   const track = tracks.find((item) => item.id === trackId) || tracks[0];
   const pickedKeywords = [...new Set([...pickKeywords(text), ...keywords.slice(0, 3)])].slice(0, 6);
   const landingUrl = work.primary_location?.landing_page_url || work.doi || work.id;
@@ -359,6 +565,11 @@ function enrichOpenAlexWork(work, fallbackTrack) {
       abstract: landingUrl,
       pdf: openAlexPdfUrl(work),
     },
+    source: work.primary_location?.source?.display_name || "OpenAlex",
+    relevanceScore: scoreTrack(text, track.id),
+    coreRelevanceScore: scoreTrack(coreText, track.id),
+    requestedTrackScore,
+    requestedCoreScore,
     deconstruction: {
       problem: buildProblem(summary, track.label),
       method: buildMethod(title, summary, pickedKeywords),
@@ -381,21 +592,17 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 16000) {
   }
 }
 
-async function fetchOpenAlexTrack(track) {
-  return fetchOpenAlexTrackWithScope(track, true);
-}
-
-async function fetchOpenAlexTrackWithScope(track, arxivOnly) {
+async function fetchOpenAlexQuery(track, query, scope = "all") {
   const filters = [dateRangeFilter(track.lookbackDays || LOOKBACK_DAYS)];
-  if (arxivOnly) {
+  if (scope === "arxiv") {
     filters.push(`primary_location.source.id:${OPENALEX_ARXIV_SOURCE}`);
   }
 
   const params = new URLSearchParams({
-    search: track.openAlexQuery,
+    search: query,
     filter: filters.join(","),
     sort: "publication_date:desc",
-    "per-page": String(MAX_PER_TRACK),
+    "per-page": String(MAX_PER_QUERY),
     select:
       "id,doi,title,display_name,publication_year,publication_date,updated_date,authorships,abstract_inverted_index,primary_location,best_oa_location,open_access,concepts,keywords,type",
   });
@@ -407,11 +614,13 @@ async function fetchOpenAlexTrackWithScope(track, arxivOnly) {
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAlex ${track.id} request failed: ${response.status} ${response.statusText}`);
+    throw new Error(`OpenAlex ${track.id}/${query}/${scope} request failed: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
-  return normalizeArray(data.results).map((work) => enrichOpenAlexWork(work, track.id));
+  return normalizeArray(data.results)
+    .map((work) => enrichOpenAlexWork(work, track.id))
+    .filter((paper) => isRelevantToTrack(paper, track.id));
 }
 
 async function fetchArxivTrack(track) {
@@ -420,7 +629,7 @@ async function fetchArxivTrack(track) {
     sortBy: "submittedDate",
     sortOrder: "descending",
     start: "0",
-    max_results: String(MAX_PER_TRACK),
+    max_results: String(Math.min(MAX_PER_QUERY, 20)),
   });
 
   const response = await fetchWithTimeout(`${ARXIV_ENDPOINT}?${params.toString()}`, {
@@ -444,42 +653,59 @@ async function main() {
   const errors = [];
 
   for (const track of tracks) {
-    try {
-      const papers = await fetchOpenAlexTrack(track);
-      if (track.allowBroadFallback && papers.length < 6) {
-        papers.push(...(await fetchOpenAlexTrackWithScope(track, false)));
+    const trackFetched = [];
+
+    for (const query of track.openAlexQueries) {
+      for (const scope of ["arxiv", "all"]) {
+        try {
+          const papers = await fetchOpenAlexQuery(track, query, scope);
+          trackFetched.push(...papers);
+          await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+        } catch (error) {
+          errors.push({ track: track.id, source: `OpenAlex:${scope}`, query, message: error.message });
+        }
       }
-      fetched.push(...papers);
-      await new Promise((resolve) => setTimeout(resolve, 900));
-    } catch (error) {
-      errors.push({ track: track.id, source: "OpenAlex", message: error.message });
+    }
+
+    if (trackFetched.filter((paper) => paper.track === track.id).length < MIN_PER_TRACK / 2) {
       try {
-        const papers = await fetchArxivTrack(track);
-        fetched.push(...papers);
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const papers = (await fetchArxivTrack(track)).filter((paper) => isRelevantToTrack(paper, track.id));
+        trackFetched.push(...papers);
+        await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS * 4));
       } catch (fallbackError) {
         errors.push({ track: track.id, source: "arXiv", message: fallbackError.message });
       }
     }
+
+    fetched.push(...trackFetched);
   }
 
   const byId = new Map();
   for (const paper of fetched) {
-    const dedupeKey = cleanText(paper.title).toLowerCase();
-    if (!byId.has(paper.id) && !byId.has(dedupeKey)) {
-      byId.set(paper.id, paper);
-      byId.set(dedupeKey, paper);
+    const dedupeKey = normalizeTitle(paper.title);
+    const idKey = cleanText(paper.id).toLowerCase();
+    if (!dedupeKey || byId.has(dedupeKey) || byId.has(idKey)) {
+      continue;
     }
+    byId.set(idKey, paper);
+    byId.set(dedupeKey, paper);
   }
 
   const uniquePapers = [...new Set(byId.values())].sort(
     (a, b) => new Date(b.published).getTime() - new Date(a.published).getTime(),
   );
-  const perTrackQuota = Math.max(6, Math.floor(TOTAL_LIMIT / tracks.length));
+  const perTrackQuota = Math.max(MIN_PER_TRACK, Math.floor(TOTAL_LIMIT / tracks.length));
   const balanced = [];
 
   for (const track of tracks) {
-    balanced.push(...uniquePapers.filter((paper) => paper.track === track.id).slice(0, perTrackQuota));
+    const papersForTrack = uniquePapers
+      .filter((paper) => paper.track === track.id)
+      .sort((a, b) => {
+        const scoreDiff = qualityScore(b) - qualityScore(a);
+        return scoreDiff || new Date(b.published).getTime() - new Date(a.published).getTime();
+      })
+      .slice(0, perTrackQuota);
+    balanced.push(...papersForTrack);
   }
 
   for (const paper of uniquePapers) {
@@ -498,6 +724,9 @@ async function main() {
     tracks,
     stats: {
       total: papers.length,
+      rawFetched: fetched.length,
+      uniqueTotal: uniquePapers.length,
+      perTrackQuota,
       byTrack: tracks.map((track) => ({
         id: track.id,
         label: track.label,

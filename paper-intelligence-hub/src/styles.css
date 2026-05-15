@@ -38,15 +38,15 @@ a {
 }
 
 .shell {
-  width: min(1520px, 100%);
+  width: min(1760px, 100%);
   margin: 0 auto;
-  padding: 28px;
+  padding: clamp(18px, 2.4vw, 34px);
 }
 
 .hero {
-  min-height: 420px;
+  min-height: 390px;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr);
   gap: 28px;
   align-items: stretch;
   padding: 30px;
@@ -87,14 +87,14 @@ a {
 
 .hero h1 {
   margin: 22px 0 16px;
-  font-size: clamp(44px, 7vw, 92px);
-  line-height: 0.94;
+  font-size: clamp(44px, 6vw, 84px);
+  line-height: 0.98;
   letter-spacing: 0;
   color: #17211d;
 }
 
 .hero p {
-  max-width: 760px;
+  max-width: 860px;
   margin: 0;
   font-size: 19px;
   line-height: 1.7;
@@ -131,7 +131,7 @@ a {
 
 .radar {
   position: relative;
-  min-height: 360px;
+  min-height: 340px;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(23, 33, 29, 0.92), rgba(33, 49, 43, 0.95)),
@@ -253,9 +253,10 @@ a {
 
 .metric-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
   gap: 12px;
   margin-top: 18px;
+  overflow-x: auto;
 }
 
 .metric {
@@ -324,8 +325,8 @@ a {
 
 .workspace {
   display: grid;
-  grid-template-columns: 350px minmax(0, 1fr) 280px;
-  gap: 18px;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr) minmax(240px, 300px);
+  gap: 22px;
   align-items: start;
 }
 
@@ -343,17 +344,34 @@ a {
   position: sticky;
   top: 0;
   z-index: 2;
-  min-height: 44px;
-  padding: 10px 0;
+  min-height: 48px;
+  padding: 10px 2px;
   background: #f3f0e8;
   color: #17211d;
   font-weight: 900;
+  justify-content: space-between;
+}
+
+.section-title span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title b {
+  min-width: 34px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  background: #17211d;
+  color: #fff;
+  font-size: 13px;
 }
 
 .paper-card {
   --accent: #2f7d67;
   width: 100%;
-  padding: 16px;
+  padding: 17px;
   border: 1px solid rgba(23, 33, 29, 0.12);
   border-left: 5px solid var(--accent);
   background: rgba(255, 255, 255, 0.72);
@@ -380,8 +398,12 @@ a {
 .paper-card h2 {
   margin: 12px 0 10px;
   font-size: 17px;
-  line-height: 1.36;
+  line-height: 1.42;
   letter-spacing: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .paper-card p,
@@ -392,6 +414,13 @@ a {
   line-height: 1.5;
 }
 
+.paper-card p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .card-meta {
   display: flex;
   justify-content: space-between;
@@ -399,12 +428,21 @@ a {
   margin-top: 12px;
   color: #8a5d3f;
   font-size: 13px;
+  align-items: center;
+}
+
+.card-meta span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .detail {
   --accent: #2f7d67;
   min-width: 0;
-  padding: 24px;
+  padding: clamp(22px, 2.2vw, 34px);
   border: 1px solid rgba(23, 33, 29, 0.12);
   background: rgba(255, 255, 255, 0.82);
 }
@@ -413,21 +451,43 @@ a {
   display: flex;
   justify-content: space-between;
   gap: 18px;
+  align-items: flex-start;
   border-bottom: 1px solid rgba(23, 33, 29, 0.12);
   padding-bottom: 20px;
 }
 
+.detail-head > div:first-child {
+  min-width: 0;
+}
+
 .detail-head h2 {
   margin: 14px 0 12px;
-  font-size: clamp(28px, 3vw, 46px);
-  line-height: 1.08;
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1.14;
   letter-spacing: 0;
+}
+
+.detail-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.detail-meta span {
+  padding: 7px 9px;
+  background: #f7f5ee;
+  color: #526059;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .link-row {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .link-row a {
@@ -456,8 +516,8 @@ a {
 
 .insight-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .insight,
@@ -468,7 +528,7 @@ a {
 }
 
 .insight {
-  padding: 18px;
+  padding: 20px;
 }
 
 .insight h3,
@@ -488,8 +548,8 @@ a {
 }
 
 .full-band {
-  margin-top: 14px;
-  padding: 18px;
+  margin-top: 16px;
+  padding: 20px;
 }
 
 .full-band ul {
@@ -499,7 +559,7 @@ a {
 
 .check-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
   gap: 10px;
 }
 
@@ -511,7 +571,7 @@ a {
 }
 
 .code-panel {
-  margin-top: 14px;
+  margin-top: 16px;
   overflow: hidden;
   background: #17211d;
   color: #f7f5ee;
@@ -521,7 +581,7 @@ a {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  padding: 18px;
+  padding: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -543,6 +603,7 @@ pre {
   margin: 0;
   padding: 18px;
   overflow: auto;
+  max-height: 520px;
 }
 
 code {
@@ -557,12 +618,19 @@ code {
 
 .trend {
   display: grid;
-  grid-template-columns: 86px 1fr 24px;
+  grid-template-columns: minmax(72px, 96px) 1fr 26px;
   gap: 8px;
   align-items: center;
   padding: 12px;
   border: 1px solid rgba(23, 33, 29, 0.12);
   background: rgba(255, 255, 255, 0.72);
+}
+
+.empty-list {
+  padding: 18px;
+  border: 1px solid rgba(23, 33, 29, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  color: #526059;
 }
 
 .trend span {
@@ -632,6 +700,24 @@ code {
   }
 }
 
+@media (max-width: 1460px) {
+  .workspace {
+    grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
+  }
+
+  .trend-panel {
+    grid-column: 1 / -1;
+    position: static;
+    max-height: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .trend-panel .section-title,
+  .trend-panel .warning {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 1180px) {
   .hero,
   .workspace {
@@ -645,6 +731,10 @@ code {
   }
 
   .paper-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trend-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -670,7 +760,8 @@ code {
   .metric-row,
   .paper-list,
   .insight-grid,
-  .check-grid {
+  .check-grid,
+  .trend-panel {
     grid-template-columns: 1fr;
   }
 

@@ -19,7 +19,9 @@ type Track = {
   id: string;
   label: string;
   accent: string;
-  query: string;
+  query?: string;
+  openAlexQueries?: string[];
+  lookbackDays?: number;
 };
 
 type Paper = {
@@ -38,6 +40,8 @@ type Paper = {
     abstract: string;
     pdf: string;
   };
+  source?: string;
+  relevanceScore?: number;
   deconstruction: {
     problem: string;
     method: string;
@@ -60,8 +64,11 @@ type PaperData = {
   tracks: Track[];
   stats: {
     total: number;
+    rawFetched?: number;
+    uniqueTotal?: number;
+    perTrackQuota?: number;
     byTrack: { id: string; label: string; count: number }[];
-    errors: { track: string; message: string }[];
+    errors: { track: string; source?: string; query?: string; message: string }[];
   };
   papers: Paper[];
 };
@@ -127,7 +134,7 @@ function App() {
 
   const selectedPaper = useMemo(() => {
     if (!data) return null;
-    return data.papers.find((paper) => paper.id === selectedId) ?? filteredPapers[0] ?? data.papers[0] ?? null;
+    return filteredPapers.find((paper) => paper.id === selectedId) ?? filteredPapers[0] ?? data.papers[0] ?? null;
   }, [data, filteredPapers, selectedId]);
 
   const topKeywords = useMemo(() => {
@@ -165,6 +172,7 @@ function App() {
   }
 
   const activeTrackMeta = data.tracks.find((track) => track.id === activeTrack);
+  const newestDate = data.papers[0]?.published;
 
   return (
     <main className="shell">
@@ -176,7 +184,7 @@ function App() {
           </div>
           <h1>Paper Intelligence Hub</h1>
           <p>
-            每天聚合最新论文，自动拆解问题、方法、贡献、实验风险和工程复现代码，面向推荐搜索广告与 LLM 进展追踪。
+            今日覆盖 {data.stats.total} 篇论文，来自 {data.stats.uniqueTotal ?? data.stats.total} 篇去重候选，重点追踪推荐、搜索广告、LLM 和交叉方向。
           </p>
           <div className="hero-actions">
             <a className="primary-link" href={selectedPaper?.links.pdf || selectedPaper?.links.abstract} target="_blank" rel="noreferrer">
@@ -185,8 +193,9 @@ function App() {
             </a>
             <div className="timestamp">
               <CalendarClock size={17} />
-              {formatDate(data.generatedAt)}
+              更新 {formatDate(data.generatedAt)}
             </div>
+            {newestDate && <div className="timestamp">最新 {shortDate(newestDate)}</div>}
           </div>
         </div>
 
@@ -202,7 +211,7 @@ function App() {
             <div
               className={`radar-node n${index + 1}`}
               key={item.id}
-              style={{ "--node-size": `${Math.max(42, item.count * 5 + 32)}px` } as React.CSSProperties}
+              style={{ "--node-size": `${Math.min(116, Math.max(54, Math.sqrt(item.count) * 14))}px` } as React.CSSProperties}
             >
               <span>{item.label}</span>
               <b>{item.count}</b>
@@ -243,9 +252,13 @@ function App() {
       <section className="workspace">
         <aside className="paper-list">
           <div className="section-title">
-            <Layers3 size={18} />
-            最新论文
+            <span>
+              <Layers3 size={18} />
+              最新论文
+            </span>
+            <b>{filteredPapers.length}</b>
           </div>
+          {filteredPapers.length === 0 && <div className="empty-list">没有匹配的论文</div>}
           {filteredPapers.map((paper) => (
             <button
               className={`paper-card ${selectedPaper?.id === paper.id ? "selected" : ""}`}
@@ -259,7 +272,7 @@ function App() {
               <p>{paper.authors.slice(0, 4).join(", ") || "Unknown authors"}</p>
               <div className="card-meta">
                 <span>{shortDate(paper.published)}</span>
-                <span>{paper.categories.slice(0, 2).join(" · ")}</span>
+                <span>{paper.source || paper.categories.slice(0, 1).join(" · ")}</span>
               </div>
             </button>
           ))}
@@ -272,6 +285,11 @@ function App() {
                 <span className="track-label">{selectedPaper.trackLabel}</span>
                 <h2>{selectedPaper.title}</h2>
                 <p>{selectedPaper.authors.slice(0, 8).join(", ") || "Unknown authors"}</p>
+                <div className="detail-meta">
+                  <span>{shortDate(selectedPaper.published)}</span>
+                  <span>{selectedPaper.source || data.source}</span>
+                  <span>{selectedPaper.categories.slice(0, 3).join(" · ") || "Research paper"}</span>
+                </div>
               </div>
               <div className="link-row">
                 <a href={selectedPaper.links.abstract} target="_blank" rel="noreferrer">
@@ -369,7 +387,7 @@ function App() {
           ))}
           {data.stats.errors.length > 0 && (
             <div className="warning">
-              部分主题拉取失败：{data.stats.errors.map((error) => error.track).join("、")}
+              部分查询失败：{data.stats.errors.slice(0, 4).map((error) => `${error.track}/${error.source || "source"}`).join("、")}
             </div>
           )}
         </aside>
