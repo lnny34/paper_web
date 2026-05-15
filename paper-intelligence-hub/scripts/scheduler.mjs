@@ -6,7 +6,7 @@ const timezone = process.env.PAPER_TIMEZONE || "Asia/Shanghai";
 
 function runFetch(reason) {
   console.log(`[${new Date().toISOString()}] ${reason}: fetching latest papers`);
-  const child = spawn("npm", ["run", "fetch:papers"], {
+  const child = spawn("npm", ["run", "fetch:incremental"], {
     stdio: "inherit",
     shell: process.platform === "win32",
   });

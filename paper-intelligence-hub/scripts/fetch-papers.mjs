@@ -4,18 +4,25 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
-const outputFile = path.join(rootDir, "public", "data", "papers.json");
+const dataDir = path.join(rootDir, "public", "data");
+const outputFile = path.join(dataDir, "papers.json");
+const exportsDir = path.join(dataDir, "exports");
 
 const OPENALEX_ENDPOINT = "https://api.openalex.org/works";
 const OPENALEX_ARXIV_SOURCE = "S4306400194";
-const START_DATE = process.env.PAPER_START_DATE || "2023-01-01";
+const DEFAULT_START_DATE = "2023-01-01";
+const MODE = process.env.PAPER_MODE || "full";
+const INCREMENTAL_DAYS = Number(process.env.PAPER_INCREMENTAL_DAYS || 7);
+let START_DATE = process.env.PAPER_START_DATE || DEFAULT_START_DATE;
 const END_DATE = process.env.PAPER_END_DATE || new Date().toISOString().slice(0, 10);
 const PAGE_SIZE = Number(process.env.PAPER_PAGE_SIZE || 200);
-const MAX_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_ARXIV_PAGES_PER_QUERY || 3);
-const MAX_ALL_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_ALL_PAGES_PER_QUERY || 1);
-const TOTAL_LIMIT = Number(process.env.PAPER_TOTAL_LIMIT || 3600);
+const MAX_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_ARXIV_PAGES_PER_QUERY || 5);
+const MAX_ALL_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_ALL_PAGES_PER_QUERY || 2);
+const HISTORICAL_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_HISTORICAL_ARXIV_PAGES_PER_QUERY || 2);
+const HISTORICAL_ALL_PAGES_PER_QUERY = Number(process.env.PAPER_HISTORICAL_ALL_PAGES_PER_QUERY || 1);
+const TOTAL_LIMIT = Number(process.env.PAPER_TOTAL_LIMIT || 6000);
 const PER_TRACK_LIMIT = Number(process.env.PAPER_PER_TRACK_LIMIT || TOTAL_LIMIT);
-const REQUEST_DELAY_MS = Number(process.env.PAPER_REQUEST_DELAY_MS || 120);
+const REQUEST_DELAY_MS = Number(process.env.PAPER_REQUEST_DELAY_MS || 90);
 
 const tracks = [
   {
@@ -93,6 +100,81 @@ const tracks = [
       "large language model sponsored search",
       "LLM user modeling recommendation",
     ],
+  },
+];
+
+const topicTaxonomy = [
+  {
+    id: "llm4rec",
+    label: "LLM 推荐",
+    accent: "#5e6ad2",
+    signals: ["llm recommender", "language model recommendation", "large language model recommendation", "user modeling"],
+  },
+  {
+    id: "generative-rec",
+    label: "生成式推荐",
+    accent: "#7d5cc8",
+    signals: ["generative recommendation", "generative recommender", "diffusion recommendation", "generative retrieval"],
+  },
+  {
+    id: "sequential-rec",
+    label: "序列/会话推荐",
+    accent: "#2f7d67",
+    signals: ["sequential recommendation", "session-based", "sequence recommendation", "next item"],
+  },
+  {
+    id: "graph-rec",
+    label: "图推荐",
+    accent: "#32806e",
+    signals: ["graph neural", "knowledge graph", "graph recommendation", "gnn recommender"],
+  },
+  {
+    id: "ranking-retrieval",
+    label: "召回排序",
+    accent: "#386f98",
+    signals: ["retrieval", "ranking", "learning to rank", "rerank", "candidate generation", "two tower"],
+  },
+  {
+    id: "ctr-cvr",
+    label: "CTR/CVR 预估",
+    accent: "#c55a2e",
+    signals: ["ctr", "click through", "cvr", "conversion rate", "calibration"],
+  },
+  {
+    id: "auction-bidding",
+    label: "拍卖/出价/预算",
+    accent: "#b45f36",
+    signals: ["auction", "auto-bidding", "autobidding", "real time bidding", "budget pacing", "bid"],
+  },
+  {
+    id: "ads-creatives",
+    label: "广告生成与投放",
+    accent: "#d07a34",
+    signals: ["advertising", "sponsored search", "ad ranking", "generative advertising", "ad creative", "ad delivery"],
+  },
+  {
+    id: "rag-agent",
+    label: "RAG/智能体",
+    accent: "#4e72c4",
+    signals: ["retrieval augmented generation", "rag", "agent", "tool use", "planning"],
+  },
+  {
+    id: "alignment",
+    label: "对齐/偏好优化",
+    accent: "#6f5bc2",
+    signals: ["alignment", "preference optimization", "rlhf", "dpo", "human feedback", "instruction tuning"],
+  },
+  {
+    id: "multimodal",
+    label: "多模态大模型",
+    accent: "#8b5ca6",
+    signals: ["multimodal", "vision language", "image-text", "vlm", "video language"],
+  },
+  {
+    id: "efficient-llm",
+    label: "高效训练/推理",
+    accent: "#51606d",
+    signals: ["efficient inference", "quantization", "distillation", "mixture of experts", "long context", "lora"],
   },
 ];
 
@@ -275,6 +357,207 @@ function dateParts(value) {
   const year = String(date.getUTCFullYear());
   const month = `${year}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
   return { year, month };
+}
+
+function subtractDays(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return DEFAULT_START_DATE;
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
+
+function maxDateString(...values) {
+  return values.filter(Boolean).sort().at(-1) || END_DATE;
+}
+
+function buildFetchWindows(from, to, yearly) {
+  if (!yearly) {
+    return [{ from, to, label: `${from}..${to}`, current: true }];
+  }
+
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return [{ from, to, label: `${from}..${to}`, current: true }];
+  }
+
+  const windows = [];
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+
+  for (let year = startYear; year <= endYear; year += 1) {
+    const windowFrom = year === startYear ? from : `${year}-01-01`;
+    const windowTo = year === endYear ? to : `${year}-12-31`;
+    windows.push({
+      from: windowFrom,
+      to: windowTo,
+      year: String(year),
+      label: String(year),
+      current: year === endYear,
+    });
+  }
+
+  return windows;
+}
+
+function maxPagesForWindow(sourceScope, fetchWindow) {
+  const base = sourceScope === "arxiv" ? MAX_ARXIV_PAGES_PER_QUERY : MAX_ALL_PAGES_PER_QUERY;
+  if (fetchWindow.current) return base;
+  const historical = sourceScope === "arxiv" ? HISTORICAL_ARXIV_PAGES_PER_QUERY : HISTORICAL_ALL_PAGES_PER_QUERY;
+  return Math.min(base, historical);
+}
+
+function signalList(text, signals) {
+  return signals.filter((signal) => hasSignal(text, signal));
+}
+
+function assignTopics(paper) {
+  const text = `${paper.title} ${paper.summary} ${(paper.keywords || []).join(" ")} ${(paper.categories || []).join(" ")}`.toLowerCase();
+  const scored = topicTaxonomy
+    .map((topic) => ({ id: topic.id, score: signalList(text, topic.signals).length }))
+    .filter((topic) => topic.score > 0)
+    .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+    .map((topic) => topic.id);
+
+  if (scored.length) {
+    return scored.slice(0, 3);
+  }
+
+  const fallback = {
+    recsys: ["ranking-retrieval"],
+    "search-ads": ["ads-creatives"],
+    llm: ["rag-agent"],
+    "llm-recsys": ["llm4rec"],
+  };
+  return fallback[paper.track] || ["ranking-retrieval"];
+}
+
+function qualityProfile(paper) {
+  const source = (paper.source || "").toLowerCase();
+  const summaryLength = cleanText(paper.summary).length;
+  const reasons = [];
+  let score = 18;
+
+  if (source.includes("arxiv")) {
+    score += 14;
+    reasons.push("arXiv 开放论文");
+  } else if (source.includes("acm") || source.includes("ieee") || source.includes("neurips") || source.includes("icml")) {
+    score += 10;
+    reasons.push("高可信学术来源");
+  }
+
+  if (paper.links?.pdf) {
+    score += 10;
+    reasons.push("可直接访问 PDF/开放版本");
+  }
+
+  if (summaryLength > 700) {
+    score += 18;
+    reasons.push("摘要信息密度高");
+  } else if (summaryLength > 260) {
+    score += 11;
+    reasons.push("摘要可用于方法拆解");
+  }
+
+  if ((paper.authors || []).length >= 3) {
+    score += 5;
+    reasons.push("作者信息完整");
+  }
+
+  const relevance = (paper.coreRelevanceScore || 0) * 6 + (paper.requestedCoreScore || 0) * 5 + (paper.relevanceScore || 0) * 2;
+  score += Math.min(30, relevance);
+
+  const published = new Date(paper.published);
+  if (!Number.isNaN(published.getTime()) && published.getUTCFullYear() >= 2025) {
+    score += 5;
+    reasons.push("近两年论文");
+  }
+
+  const bounded = Math.max(0, Math.min(100, Math.round(score)));
+  const level = bounded >= 78 ? "高" : bounded >= 58 ? "中" : "观察";
+  if (reasons.length < 3) {
+    reasons.push("主题相关性来自标题、摘要、概念和关键词综合打分");
+  }
+
+  return { score: bounded, level, reasons: reasons.slice(0, 4) };
+}
+
+function pickDeepSignals(text, pairs) {
+  return pairs.filter(([signal]) => hasSignal(text, signal)).map(([, label]) => label);
+}
+
+function buildDeepDive(paper) {
+  const text = `${paper.title} ${paper.summary} ${(paper.keywords || []).join(" ")} ${(paper.categories || []).join(" ")}`.toLowerCase();
+  const methodSignals = pickDeepSignals(text, [
+    ["transformer", "Transformer/注意力结构"],
+    ["contrastive", "对比学习"],
+    ["graph", "图神经网络"],
+    ["reinforcement", "强化学习"],
+    ["preference", "偏好优化"],
+    ["retrieval", "检索增强"],
+    ["diffusion", "扩散/生成模型"],
+    ["auction", "拍卖机制建模"],
+    ["calibration", "概率校准"],
+    ["distillation", "蒸馏/压缩"],
+  ]);
+  const datasetSignals = pickDeepSignals(text, [
+    ["amazon", "Amazon"],
+    ["movielens", "MovieLens"],
+    ["mmlu", "MMLU"],
+    ["ms marco", "MS MARCO"],
+    ["criteo", "Criteo"],
+    ["avazu", "Avazu"],
+    ["kuairand", "KuaiRand"],
+    ["benchmark", "公开 Benchmark"],
+    ["dataset", "自建或公开数据集"],
+  ]);
+  const metricSignals = pickDeepSignals(text, [
+    ["ndcg", "NDCG"],
+    ["recall", "Recall"],
+    ["auc", "AUC"],
+    ["ctr", "CTR"],
+    ["cvr", "CVR"],
+    ["latency", "Latency"],
+    ["conversion", "Conversion"],
+    ["accuracy", "Accuracy"],
+    ["win rate", "Win Rate"],
+  ]);
+
+  return {
+    methodSignals: methodSignals.length ? methodSignals : ["需从正文抽取模型结构与训练目标"],
+    datasetSignals: datasetSignals.length ? datasetSignals : ["需从实验章节确认数据集与切分"],
+    metricSignals: metricSignals.length ? metricSignals : ["需从实验表格确认主指标"],
+    formulaSignals: pickDeepSignals(text, [
+      ["loss", "主损失函数"],
+      ["objective", "优化目标"],
+      ["reward", "奖励函数"],
+      ["regularization", "正则项"],
+    ]),
+    reproducePlan: [
+      "固定数据切分、负采样和评价口径，先复现论文主表中的核心指标。",
+      "把方法拆成输入特征、模型主干、训练目标、推理服务四层，逐层替换到现有链路。",
+      paper.track === "search-ads"
+        ? "广告方向额外检查预算约束、出价策略、校准和线上竞价模拟。"
+        : "推荐/大模型方向额外检查冷启动、长尾、延迟和安全边界。",
+    ],
+  };
+}
+
+function finalizePaper(paper) {
+  const topics = Array.isArray(paper.topics) && paper.topics.length ? paper.topics : assignTopics(paper);
+  const nextPaper = {
+    ...paper,
+    topics,
+    links: {
+      abstract: paper.links?.abstract || "",
+      pdf: paper.links?.pdf || paper.links?.abstract || "",
+    },
+  };
+  return {
+    ...nextPaper,
+    quality: paper.quality?.score ? paper.quality : qualityProfile(nextPaper),
+    deepDive: paper.deepDive || buildDeepDive(nextPaper),
+  };
 }
 
 function buildProblem(summary, trackLabel) {
@@ -516,13 +799,13 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 22000) {
   }
 }
 
-async function fetchOpenAlexQuery(track, query, sourceScope) {
+async function fetchOpenAlexQuery(track, query, sourceScope, fetchWindow) {
   const fetched = [];
   let cursor = "*";
-  const maxPages = sourceScope === "arxiv" ? MAX_ARXIV_PAGES_PER_QUERY : MAX_ALL_PAGES_PER_QUERY;
+  const maxPages = maxPagesForWindow(sourceScope, fetchWindow);
 
   for (let page = 0; page < maxPages; page += 1) {
-    const filters = [`from_publication_date:${START_DATE}`, `to_publication_date:${END_DATE}`];
+    const filters = [`from_publication_date:${fetchWindow.from}`, `to_publication_date:${fetchWindow.to}`];
     if (sourceScope === "arxiv") {
       filters.push(`primary_location.source.id:${OPENALEX_ARXIV_SOURCE}`);
     }
@@ -549,10 +832,13 @@ async function fetchOpenAlexQuery(track, query, sourceScope) {
 
     const data = await response.json();
     const results = normalizeArray(data.results);
-    const enriched = results.map((work) => enrichOpenAlexWork(work, track.id)).filter(Boolean);
+    const enriched = results
+      .map((work) => enrichOpenAlexWork(work, track.id))
+      .filter(Boolean)
+      .map(finalizePaper);
     fetched.push(...enriched);
     console.log(
-      `[${track.id}] ${sourceScope} "${query}" page ${page + 1}/${maxPages}: ${enriched.length}/${results.length} kept`,
+      `[${track.id}] ${fetchWindow.label} ${sourceScope} "${query}" page ${page + 1}/${maxPages}: ${enriched.length}/${results.length} kept`,
     );
 
     cursor = data.meta?.next_cursor;
@@ -564,6 +850,9 @@ async function fetchOpenAlexQuery(track, query, sourceScope) {
 }
 
 function qualityScore(paper) {
+  if (paper.quality?.score != null) {
+    return paper.quality.score;
+  }
   const source = (paper.source || "").toLowerCase();
   const sourceBoost = source.includes("arxiv") ? 8 : source.includes("acm") || source.includes("ieee") ? 4 : 0;
   return sourceBoost + (paper.coreRelevanceScore || 0) * 6 + (paper.requestedCoreScore || 0) * 4 + (paper.relevanceScore || 0);
@@ -598,35 +887,204 @@ function buildTimeline(papers) {
   };
 }
 
+function buildTopicSummary(papers) {
+  return topicTaxonomy.map((topic) => {
+    const topicPapers = papers.filter((paper) => (paper.topics || []).includes(topic.id));
+    const byYear = topicPapers.reduce((acc, paper) => {
+      const year = paper.year || dateParts(paper.published).year;
+      acc[year] = (acc[year] || 0) + 1;
+      return acc;
+    }, {});
+    return {
+      id: topic.id,
+      label: topic.label,
+      accent: topic.accent,
+      count: topicPapers.length,
+      byYear,
+    };
+  });
+}
+
+function buildTrends(papers, topics) {
+  const months = buildTimeline(papers).months.slice().reverse();
+  const keywordCounts = new Map();
+
+  for (const paper of papers) {
+    for (const keyword of paper.keywords || []) {
+      keywordCounts.set(keyword, (keywordCounts.get(keyword) || 0) + 1);
+    }
+  }
+
+  const monthly = months.map((month) => {
+    const monthPapers = papers.filter((paper) => (paper.month || dateParts(paper.published).month) === month.month);
+    const byTopic = {};
+    for (const paper of monthPapers) {
+      for (const topic of paper.topics || []) {
+        byTopic[topic] = (byTopic[topic] || 0) + 1;
+      }
+    }
+    return {
+      month: month.month,
+      count: month.count,
+      byTrack: month.byTrack,
+      byTopic,
+    };
+  });
+
+  return {
+    monthly,
+    topKeywords: [...keywordCounts.entries()]
+      .map(([keyword, count]) => ({ keyword, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 24),
+    risingTopics: topics
+      .filter((topic) => topic.count > 0)
+      .map((topic) => {
+        const recent = monthly.slice(-6).reduce((sum, month) => sum + (month.byTopic[topic.id] || 0), 0);
+        const previous = monthly.slice(-12, -6).reduce((sum, month) => sum + (month.byTopic[topic.id] || 0), 0);
+        return { ...topic, recent, previous, delta: recent - previous };
+      })
+      .sort((a, b) => b.delta - a.delta || b.recent - a.recent)
+      .slice(0, 8),
+  };
+}
+
+function escapeCsv(value) {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function bibKey(paper, index) {
+  const author = normalizeTitle(paper.authors?.[0] || "paper").split(" ")[0] || "paper";
+  const year = paper.year || dateParts(paper.published).year || "nd";
+  const slug = normalizeTitle(paper.title).split(" ").slice(0, 4).join("");
+  return `${author}${year}${slug || index}`;
+}
+
+function escapeBibtex(value) {
+  return String(value ?? "").replace(/[{}]/g, "").replace(/\n/g, " ");
+}
+
+async function writeExports(data) {
+  await fs.mkdir(exportsDir, { recursive: true });
+
+  const csvRows = [
+    ["title", "authors", "published", "track", "topics", "quality", "source", "abstract_url", "pdf_url", "summary"],
+    ...data.papers.map((paper) => [
+      paper.title,
+      (paper.authors || []).join("; "),
+      paper.published,
+      paper.trackLabel,
+      (paper.topics || []).join("; "),
+      paper.quality?.score ?? "",
+      paper.source || "",
+      paper.links?.abstract || "",
+      paper.links?.pdf || "",
+      paper.summary,
+    ]),
+  ];
+  await fs.writeFile(path.join(exportsDir, "papers.csv"), `${csvRows.map((row) => row.map(escapeCsv).join(",")).join("\n")}\n`, "utf8");
+
+  const bib = data.papers
+    .map((paper, index) => {
+      const key = bibKey(paper, index + 1);
+      const url = paper.links?.pdf || paper.links?.abstract || "";
+      return `@misc{${key},
+  title = {${escapeBibtex(paper.title)}},
+  author = {${escapeBibtex((paper.authors || []).join(" and ") || "Unknown")}},
+  year = {${escapeBibtex(paper.year || dateParts(paper.published).year)}},
+  howpublished = {${escapeBibtex(paper.source || "OpenAlex")}},
+  url = {${escapeBibtex(url)}},
+  note = {${escapeBibtex(paper.trackLabel)}}
+}`;
+    })
+    .join("\n\n");
+  await fs.writeFile(path.join(exportsDir, "papers.bib"), `${bib}\n`, "utf8");
+
+  const latest = data.papers.slice(0, 30);
+  const weekly = [
+    `# Paper Intelligence Weekly`,
+    ``,
+    `生成时间：${data.generatedAt}`,
+    `覆盖范围：${data.dateRange.from} 至 ${data.dateRange.to}`,
+    `论文总数：${data.stats.total}`,
+    ``,
+    `## 最近 30 篇`,
+    ...latest.map((paper, index) => `${index + 1}. **${paper.title}** (${paper.trackLabel}, ${paper.published}) - ${paper.links?.abstract || ""}`),
+    ``,
+    `## 上升主题`,
+    ...data.trends.risingTopics.map((topic) => `- ${topic.label}: 最近 6 个月 ${topic.recent} 篇，较前 6 个月 ${topic.delta >= 0 ? "+" : ""}${topic.delta}`),
+  ].join("\n");
+  await fs.writeFile(path.join(exportsDir, "weekly.md"), `${weekly}\n`, "utf8");
+}
+
+async function readExistingData() {
+  try {
+    return JSON.parse(await fs.readFile(outputFile, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
+  const existingData = await readExistingData();
+  const existingPapers = normalizeArray(existingData?.papers).map(finalizePaper);
   const fetched = [];
   const errors = [];
+  let networkFetched = 0;
 
-  for (const track of tracks) {
-    for (const query of track.openAlexQueries) {
-      for (const sourceScope of track.sourceScopes) {
-        try {
-          const papers = await fetchOpenAlexQuery(track, query, sourceScope);
-          fetched.push(...papers);
-        } catch (error) {
-          errors.push({ track: track.id, source: `OpenAlex:${sourceScope}`, query, message: error.message });
+  if (MODE === "incremental" && !process.env.PAPER_START_DATE) {
+    const anchor = existingData?.dateRange?.to || existingData?.generatedAt?.slice(0, 10) || END_DATE;
+    START_DATE = subtractDays(anchor, INCREMENTAL_DAYS);
+  }
+
+  if (MODE === "augment") {
+    fetched.push(...existingPapers);
+    console.log(`Augmenting existing corpus: ${existingPapers.length} papers`);
+  } else {
+    const yearlyBackfill = MODE === "full" || process.env.PAPER_YEARLY_BACKFILL === "true";
+    const fetchWindows = buildFetchWindows(START_DATE, END_DATE, yearlyBackfill);
+
+    for (const track of tracks) {
+      for (const query of track.openAlexQueries) {
+        for (const sourceScope of track.sourceScopes) {
+          for (const fetchWindow of fetchWindows) {
+            try {
+              const papers = await fetchOpenAlexQuery(track, query, sourceScope, fetchWindow);
+              fetched.push(...papers);
+              networkFetched += papers.length;
+            } catch (error) {
+              errors.push({
+                track: track.id,
+                source: `OpenAlex:${sourceScope}:${fetchWindow.label}`,
+                query,
+                message: error.message,
+              });
+            }
+            await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+          }
         }
-        await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
       }
+    }
+
+    if (MODE === "incremental") {
+      fetched.push(...existingPapers);
+      console.log(`Merged ${existingPapers.length} existing papers with ${networkFetched} freshly fetched papers`);
     }
   }
 
   const byKey = new Map();
   for (const paper of fetched) {
-    const titleKey = normalizeTitle(paper.title);
-    const idKey = cleanText(paper.id).toLowerCase();
+    const finalPaper = finalizePaper(paper);
+    const titleKey = normalizeTitle(finalPaper.title);
+    const idKey = cleanText(finalPaper.id).toLowerCase();
     const dedupeKey = idKey || titleKey;
     if (!titleKey) continue;
 
     const existing = byKey.get(dedupeKey) || byKey.get(titleKey);
-    if (!existing || qualityScore(paper) > qualityScore(existing)) {
-      byKey.set(dedupeKey, paper);
-      byKey.set(titleKey, paper);
+    if (!existing || qualityScore(finalPaper) > qualityScore(existing)) {
+      byKey.set(dedupeKey, finalPaper);
+      byKey.set(titleKey, finalPaper);
     }
   }
 
@@ -652,23 +1110,38 @@ async function main() {
     .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime())
     .slice(0, TOTAL_LIMIT);
   const timeline = buildTimeline(papers);
+  const topics = buildTopicSummary(papers);
+  const trends = buildTrends(papers, topics);
+  const previousIds = new Set(existingPapers.map((paper) => paper.id));
+  const newSinceLastRun = MODE === "incremental" ? papers.filter((paper) => !previousIds.has(paper.id)).length : 0;
 
   const data = {
     generatedAt: new Date().toISOString(),
     source: "OpenAlex API",
+    mode: MODE,
     dateRange: {
-      from: START_DATE,
-      to: END_DATE,
+      from: MODE === "incremental" && existingData?.dateRange?.from ? existingData.dateRange.from : START_DATE,
+      to: MODE === "incremental" ? maxDateString(existingData?.dateRange?.to, END_DATE) : END_DATE,
     },
     focus: ["推荐系统", "搜索广告", "大模型", "LLM x 推荐广告"],
     tracks,
+    topics,
     timeline,
+    trends,
+    exports: {
+      csv: "data/exports/papers.csv",
+      bibtex: "data/exports/papers.bib",
+      weekly: "data/exports/weekly.md",
+      json: "data/papers.json",
+    },
     stats: {
       total: papers.length,
       rawFetched: fetched.length,
+      networkFetched,
       uniqueTotal: uniquePapers.length,
       outputLimit: TOTAL_LIMIT,
       perTrackLimit: PER_TRACK_LIMIT,
+      newSinceLastRun,
       byTrack: tracks.map((track) => ({
         id: track.id,
         label: track.label,
@@ -691,9 +1164,10 @@ async function main() {
 
   await fs.mkdir(path.dirname(outputFile), { recursive: true });
   await fs.writeFile(outputFile, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await writeExports(data);
 
   console.log(
-    `Wrote ${papers.length} papers (${uniquePapers.length} unique, ${fetched.length} fetched) for ${START_DATE}..${END_DATE}`,
+    `Wrote ${papers.length} papers (${uniquePapers.length} unique, ${fetched.length} fetched, ${networkFetched} network) for ${data.dateRange.from}..${data.dateRange.to}`,
   );
   if (errors.length) {
     console.warn("Completed with partial errors:", errors.slice(0, 8));

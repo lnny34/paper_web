@@ -1,6 +1,6 @@
 # Paper Intelligence Hub
 
-自动论文库，面向推荐系统、搜索广告、大模型和 LLM x 推荐广告方向。默认拉取 `2023-01-01` 至今的数据，并生成时间线视图。
+自动论文库，面向推荐系统、搜索广告、大模型和 LLM x 推荐广告方向。默认拉取 `2023-01-01` 至今的数据，并生成时间线、主题趋势、论文拆解、复现代码骨架和导出文件。
 
 ## 快速开始
 
@@ -11,6 +11,16 @@ npm run dev
 ```
 
 访问 Vite 输出的本地地址即可查看网页。
+
+## 主要功能
+
+- 全量抓取：OpenAlex 覆盖 `2023-01-01` 至今，默认扩大到每个 arXiv 查询 5 页、通用查询 2 页。
+- 年份回填：全量模式会按年份窗口抓取，避免热门方向只保留最新年份。
+- 增量更新：`npm run fetch:incremental` 会读取现有 `public/data/papers.json`，只抓最近窗口并合并去重。
+- 主题与趋势：自动归类到 LLM 推荐、生成式推荐、CTR/CVR、拍卖出价、RAG/智能体、对齐、多模态等主题。
+- 论文拆解：为每篇论文生成问题、方法、贡献、实验检查、质量分、复现路径和关键代码骨架。
+- 本地工作流：网页支持收藏、待读、在读、已读、复现等状态，状态保存在浏览器本地。
+- 导出：生成 `public/data/exports/papers.csv`、`papers.bib`、`weekly.md`。
 
 ## 自动更新
 
@@ -26,19 +36,31 @@ npm run dev:all
 PAPER_DAILY_CRON="30 9 * * *" PAPER_TIMEZONE="Asia/Shanghai" npm run dev:all
 ```
 
+增量刷新：
+
+```bash
+npm run fetch:incremental
+```
+
+年份回填：
+
+```bash
+npm run fetch:backfill
+```
+
 全量采集参数：
 
 ```bash
-PAPER_START_DATE="2023-01-01" PAPER_TOTAL_LIMIT=3600 npm run fetch:papers
+PAPER_START_DATE="2023-01-01" PAPER_TOTAL_LIMIT=6000 npm run fetch:papers
 ```
 
-如果只想做更快的日常刷新，可以降低每个查询的翻页深度：
+只想刷新派生字段和导出文件，不重新请求网络：
 
 ```bash
-PAPER_MAX_ARXIV_PAGES_PER_QUERY=1 PAPER_MAX_ALL_PAGES_PER_QUERY=1 npm run fetch:papers
+npm run augment:data
 ```
 
-如果部署到 GitHub，可以用 `gh-pages` 分支发布静态网页；也可以在 GitHub 上手动添加 Actions workflow 实现每日自动构建。
+如果部署到 GitHub，可以用 `gh-pages` 分支发布静态网页；每日线上自动构建需要仓库启用 GitHub Actions workflow。
 
 ## 公网部署
 
@@ -58,8 +80,8 @@ git subtree push --prefix paper-intelligence-hub/dist origin gh-pages
 ## 数据来源
 
 - OpenAlex API
-- arXiv API fallback
 - 输出文件：`public/data/papers.json`
+- 导出文件：`public/data/exports/*`
 - 拉取脚本：`scripts/fetch-papers.mjs`
 
 论文拆解和关键代码是基于标题、摘要与方向关键词生成的工程化初筛结果，适合用来决定是否阅读全文和复现实验。

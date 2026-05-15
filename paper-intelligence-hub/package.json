@@ -9,6 +9,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "fetch:papers": "node scripts/fetch-papers.mjs",
+    "fetch:incremental": "PAPER_MODE=incremental node scripts/fetch-papers.mjs",
+    "fetch:backfill": "PAPER_MODE=incremental PAPER_YEARLY_BACKFILL=true PAPER_START_DATE=2023-01-01 node scripts/fetch-papers.mjs",
+    "augment:data": "PAPER_MODE=augment node scripts/fetch-papers.mjs",
     "schedule:papers": "node scripts/scheduler.mjs"
   },
   "dependencies": {
