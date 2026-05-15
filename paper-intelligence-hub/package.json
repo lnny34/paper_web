@@ -1,0 +1,30 @@
+{
+  "name": "paper-intelligence-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "dev:all": "concurrently \"npm run schedule:papers\" \"npm run dev\"",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "fetch:papers": "node scripts/fetch-papers.mjs",
+    "schedule:papers": "node scripts/scheduler.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^9.2.1",
+    "fast-xml-parser": "^5.3.2",
+    "lucide-react": "^0.468.0",
+    "node-cron": "^4.2.1",
+    "vite": "^8.0.13",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.7.2"
+  }
+}

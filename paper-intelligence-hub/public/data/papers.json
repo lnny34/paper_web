@@ -1,0 +1,2509 @@
+{
+  "generatedAt": "2026-05-15T08:13:49.540Z",
+  "source": "OpenAlex API + arXiv fallback",
+  "focus": [
+    "推荐系统",
+    "搜索广告",
+    "大模型",
+    "LLM x 推荐广告"
+  ],
+  "tracks": [
+    {
+      "id": "recsys",
+      "label": "推荐系统",
+      "accent": "#2f7d67",
+      "openAlexQuery": "recommender system recommendation ranking retrieval sequential recommendation",
+      "query": "all:\"recommender system\" OR all:\"recommendation model\" OR all:\"sequential recommendation\" OR all:\"ranking model\""
+    },
+    {
+      "id": "search-ads",
+      "label": "搜索广告",
+      "accent": "#c55a2e",
+      "lookbackDays": 365,
+      "allowBroadFallback": true,
+      "openAlexQuery": "sponsored search search advertising ad ranking advertising auction ctr cvr",
+      "query": "all:\"sponsored search\" OR all:\"search advertising\" OR all:\"ad ranking\" OR all:\"advertising auction\""
+    },
+    {
+      "id": "llm",
+      "label": "大模型",
+      "accent": "#5e6ad2",
+      "openAlexQuery": "large language model LLM foundation model instruction tuning alignment",
+      "query": "all:\"large language model\" OR all:\"LLM\" OR all:\"foundation model\" OR all:\"instruction tuning\""
+    },
+    {
+      "id": "llm-recsys",
+      "label": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "openAlexQuery": "large language model recommendation advertising generative recommendation LLM recommender",
+      "query": "(all:\"large language model\" AND all:\"recommendation\") OR (all:\"LLM\" AND all:\"advertising\") OR (all:\"generative recommendation\")"
+    }
+  ],
+  "stats": {
+    "total": 42,
+    "byTrack": [
+      {
+        "id": "recsys",
+        "label": "推荐系统",
+        "count": 7
+      },
+      {
+        "id": "search-ads",
+        "label": "搜索广告",
+        "count": 7
+      },
+      {
+        "id": "llm",
+        "label": "大模型",
+        "count": 18
+      },
+      {
+        "id": "llm-recsys",
+        "label": "LLM x 推荐广告",
+        "count": 10
+      }
+    ],
+    "errors": []
+  },
+  "papers": [
+    {
+      "id": "https://openalex.org/W7160360598",
+      "title": "Time-Interval-Aware Disentangled Expert Modeling for Next-Basket Recommendation",
+      "authors": [
+        "Zhiying Deng",
+        "Yuan Fu",
+        "Dr. Usman Farooq",
+        "Ziwei Tian",
+        "Wei Liu",
+        "Jianjun Li"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Next-basket recommendation (NBR) is a type of recommendation that aims to predict a set of items a user will purchase based on their historical transaction basket sequences. It is governed by a dynamic interplay between two distinct user intents: habitual repurchase, which involves repeating past behaviors, and exploratory interest, which involves discovering new items. However, existing NBR methods generally suffer from two limitations: (1) they often entangle these conflicting motives within a single representation, causing habits to overshadow discovery, and (2) they rely on discrete sequential modeling that ignores continuous-time intervals and item-specific periodicities. In this paper, we propose a novel solution named Time-Interval Disentangled Experts (TIDE) to address these challenges. TIDE incorporates a Hawkes-enhanced Fourier Time Encoding to capture item-specific temporal periodicities and dynamic decay. To decouple user intentions, TIDE utilizes a dual-expert architecture that integrates a Habit Expert for recurring needs and a Pattern-Guided Exploration Expert for discovery. Combined with an item-aware gating mechanism, TIDE adaptively balances repurchase and exploration. Extensive experiments on four diverse real-world datasets demonstrate that TIDE consistently outperforms representative state-of-the-art NBR methods.",
+      "track": "recsys",
+      "trackLabel": "推荐系统",
+      "accent": "#2f7d67",
+      "categories": [
+        "Computer science",
+        "Set (abstract data type)",
+        "Database transaction",
+        "Encoding (memory)",
+        "Expert system"
+      ],
+      "keywords": [
+        "召回",
+        "序列建模",
+        "Set (abstract data type)",
+        "Database transaction",
+        "Encoding (memory)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00499",
+        "pdf": "https://arxiv.org/pdf/2605.00499"
+      },
+      "deconstruction": {
+        "problem": "推荐系统场景下的核心问题：Next-basket recommendation (NBR) is a type of recommendation that aims to predict a set of items a user will purchase based on their historical transaction basket sequences.",
+        "method": "从题目“Time-Interval-Aware Disentangled Expert Modeling for Next-Basket Recommendation”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括召回、序列建模、Set (abstract data type)、Database transaction、Encoding (memory)。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证召回是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "召回率、NDCG、MRR 等排序指标是否完整",
+          "负采样和时间切分是否避免泄漏",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "双塔召回/排序实验骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass TwoTower(nn.Module):\n    def __init__(self, user_dim: int, item_dim: int, hidden: int = 128):\n        super().__init__()\n        self.user_tower = nn.Sequential(nn.Linear(user_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n        self.item_tower = nn.Sequential(nn.Linear(item_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n\n    def forward(self, user_features, item_features):\n        user_vec = F.normalize(self.user_tower(user_features), dim=-1)\n        item_vec = F.normalize(self.item_tower(item_features), dim=-1)\n        return user_vec @ item_vec.T\n\ndef contrastive_loss(scores):\n    labels = torch.arange(scores.size(0), device=scores.device)\n    return F.cross_entropy(scores, labels)\n",
+        "note": "适合先复现召回阶段的语义匹配，再接业务负采样、hard negative 和 ANN 检索。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360704",
+      "title": "LLM-Oriented Information Retrieval: A Denoising-First Perspective",
+      "authors": [
+        "Lu Dai",
+        "Liang Sun",
+        "Fanpu Cao",
+        "Ziyang Rao",
+        "Cehao Yang",
+        "Hao Liu",
+        "Hui Xiong"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Modern information retrieval (IR) is no longer consumed primarily by humans but increasingly by large language models (LLMs) via retrieval-augmented generation (RAG) and agentic search. Unlike human users, LLMs are constrained by limited attention budgets and are uniquely vulnerable to noise; misleading or irrelevant information is no longer just a nuisance, but a direct cause of hallucinations and reasoning failures. In this perspective paper, we argue that denoising-maximizing usable evidence density and verifiability within a context window-is becoming the primary bottleneck across the full information access pipeline. We conceptualize this paradigm shift through a four-stage framework of IR challenges: from inaccessible to undiscoverable, to misaligned, and finally to unverifiable. Furthermore, we provide a pipeline-organized taxonomy of signal-to-noise optimization techniques, spanning indexing, retrieval, context engineering, verification, and agentic workflow. We also present research works on information denoising in domains that rely heavily on retrieval such as lifelong assistant, coding agent, deep research, and multimodal understanding.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Perspective (graphical)",
+        "USable",
+        "Computer science",
+        "Context (archaeology)",
+        "Bottleneck"
+      ],
+      "keywords": [
+        "召回",
+        "智能体",
+        "RAG",
+        "多模态",
+        "图学习",
+        "Perspective (graphical)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00505",
+        "pdf": "https://arxiv.org/pdf/2605.00505"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Modern information retrieval (IR) is no longer consumed primarily by humans but increasingly by large language models (LLMs) via retrieval-augmented generation (RAG) and agentic search.",
+        "method": "从题目“LLM-Oriented Information Retrieval: A Denoising-First Perspective”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括召回、智能体、RAG、多模态、图学习、Perspective (graphical)。",
+        "contributions": [
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证召回是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360516",
+      "title": "Is Textual Similarity Invariant under Machine Translation? Evidence Based on the Political Manifesto Corpus",
+      "authors": [
+        "Daria Boratyn",
+        "Damian Brzyski",
+        "Albert Leśniak",
+        "Wojciech Łukasik",
+        "Maciej Rapacz",
+        "Jan Rybicki",
+        "Wojciech Słomczyński",
+        "Dariusz Stolicki"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "We investigate the extent to which cosine similarity between paragraph embeddings is invariant under machine translation, using the Manifesto Corpus of over 2,800 political party platforms in 28 languages translated to English via the EU eTranslation service. Rather than measuring translation-induced semantic shift directly we measure the stability of pairwise similarity relationships across embedding models, and use inter-model disagreement on original-language text as a calibrated invariance threshold. This yields a per-language non-inferiority test for four hypotheses about how translation interacts with embedding choice, with verdicts that distinguish languages where translation demonstrably preserves semantic structure from those where it demonstrably degrades it and from those where the available evidence does not resolve the question. The framework is corpus- and pipeline-agnostic and extends naturally to downstream tasks. Applied to our data, it identifies ten languages with translation invariance and four with detectable distortion.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Natural language processing",
+        "Manifesto",
+        "Pairwise comparison",
+        "Artificial intelligence",
+        "Embedding"
+      ],
+      "keywords": [
+        "RAG",
+        "图学习",
+        "Manifesto",
+        "Pairwise comparison",
+        "Embedding"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00618",
+        "pdf": "https://arxiv.org/pdf/2605.00618"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：We investigate the extent to which cosine similarity between paragraph embeddings is invariant under machine translation, using the Manifesto Corpus of over 2,800 political party platforms in 28 languages translated to E...",
+        "method": "从题目“Is Textual Similarity Invariant under Machine Translation? Evidence Based on the Political Manifesto Corpus”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括RAG、图学习、Manifesto、Pairwise comparison、Embedding。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证RAG是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360053",
+      "title": "Scaling Video Understanding via Compact Latent Multi-Agent Collaboration",
+      "authors": [
+        "Kerui Chen",
+        "Jinglu Wang",
+        "Jianrong Zhang",
+        "Ming Li",
+        "Yan Lu",
+        "Hehe Fan"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Multi-modal large language models (MLLMs) advance vision language understanding but face inherent limitations in long-video tasks due to bounded perception context budgets. Existing agentic methods mitigate this via rule-based preprocessing, yet often suffer from information loss, high cost, and reliance on textual intermediates. We propose MACF, an end-to-end Multi-Agent Collaboration Framework that decouples per-agent perception budgets from global video complexity, enabling scalable video understanding while preserving visual fidelity. MACF partitions videos into segments for locally budgeted agents and enables holistic reasoning via an agent-native latent communication protocol. Each agent encodes partial observations into compact, task-sufficient tokens in a shared embedding space, allowing efficient and information-preserving collaboration by a central coordinator. We introduce a curriculum training strategy that progressively enforces semantic alignment, evidence summarization, and cross-agent coordination. Extensive experiments on diverse video understanding benchmarks show that MACF consistently outperforms state-of-the-art MLLMs and multi-agent systems under identical budget constraints, demonstrating the effectiveness of our latent collaboration for scalable video understanding.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Scalability",
+        "Embedding",
+        "Context (archaeology)",
+        "Perception"
+      ],
+      "keywords": [
+        "召回",
+        "智能体",
+        "对齐",
+        "Scalability",
+        "Embedding",
+        "Context (archaeology)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00444",
+        "pdf": "https://arxiv.org/pdf/2605.00444"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Multi-modal large language models (MLLMs) advance vision language understanding but face inherent limitations in long-video tasks due to bounded perception context budgets.",
+        "method": "从题目“Scaling Video Understanding via Compact Latent Multi-Agent Collaboration”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括召回、智能体、对齐、Scalability、Embedding、Context (archaeology)。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "强调效率或延迟优化，可关注线上推理成本。",
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360127",
+      "title": "Odysseus: Scaling VLMs to 100+ Turn Decision-Making in Games via Reinforcement Learning",
+      "authors": [
+        "Chengshuai Shi",
+        "Wenzhe Li",
+        "Xinran Liang",
+        "Yizhou Lu",
+        "Wenjia Yang",
+        "Ruirong Feng",
+        "Seth Karten",
+        "Ziran Yang",
+        "Zihan Ding",
+        "Gabriel Sarch",
+        "Danqi Chen",
+        "Karthik Narasimhan",
+        "Chi Jin"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "Given the rapidly growing capabilities of vision-language models (VLMs), extending them to interactive decision-making tasks such as video games has emerged as a promising frontier. However, existing approaches either rely on large-scale supervised fine-tuning (SFT) on human trajectories or apply reinforcement learning (RL) only in relatively short-horizon settings (typically around 20--30 turns). In this work, we study RL-based training of VLMs for long-horizon decision-making in Super Mario Land, a visually grounded environment requiring 100+ turns of interaction with coordinated perception, reasoning, and action. We begin with a systematic investigation of key algorithmic components and propose an adapted variant of PPO with a lightweight turn-level critic, which substantially improves training stability and sample efficiency over critic-free methods such as GRPO and Reinforce++. We further show that pretrained VLMs provide strong action priors, significantly improving sample efficiency during RL training and reducing the need for manual design choices such as action engineering, compared to classical deep RL trained from scratch. Building on these insights, we introduce Odysseus, an open training framework for VLM agents, achieving substantial gains across multiple levels of the game and at least 3 times average game progresses than frontier models. Moreover, the trained models exhibit consistent improvements under both in-game and cross-game generalization settings, while maintaining general-domain capabilities. Overall, our results identify key ingredients for making RL stable and effective in long-horizon, multi-modal settings, and provide practical guidance for developing VLMs as embodied agents.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Reinforcement learning",
+        "Computer science",
+        "Generalization",
+        "Artificial intelligence",
+        "Key (lock)"
+      ],
+      "keywords": [
+        "智能体",
+        "RAG",
+        "图学习",
+        "Reinforcement learning",
+        "Generalization",
+        "Key (lock)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00347",
+        "pdf": "https://arxiv.org/pdf/2605.00347"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Given the rapidly growing capabilities of vision-language models (VLMs), extending them to interactive decision-making tasks such as video games has emerged as a promising frontier.",
+        "method": "从题目“Odysseus: Scaling VLMs to 100+ Turn Decision-Making in Games via Reinforcement Learning”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、RAG、图学习、Reinforcement learning、Generalization、Key (lock)。",
+        "contributions": [
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360749",
+      "title": "On the Role of Artificial Intelligence in Human-Machine Symbiosis",
+      "authors": [
+        "Ching‐Chun Chang",
+        "Yuchen Guo",
+        "Hanrui Wang",
+        "Timo Spinde",
+        "Isao Echizen"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "The evolution of artificial intelligence (AI) has rendered the boundary between humanity and computational machinery increasingly ambiguous. In the presence of more interwoven relationships within human-machine symbiosis, the very notion of AI-generated information becomes difficult to define, as such information arises not from either humans or machines in isolation, but from their mutual shaping. Therefore, a more pertinent question lies not merely in whether AI has participated, but in how it has participated. In general, the role assumed by AI is often specified, either implicitly or explicitly, in the input prompt, yet becomes less apparent or altogether unobservable when the generated content alone is available. Once detached from the dialogue context, the functional role may no longer be traceable. This study considers the problem of tracing the functional role played by AI in natural language generation. A methodology is proposed to infer the latent role specified by the prompt, embed this role into the content during the probabilistic generation process and subsequently recover the nature of AI participation from the resulting text. Experimentation is conducted under a representative scenario in which AI acts either as an assistive agent that edits human-written content or as a creative agent that generates new content from a brief concept. The experimental results support the validity of the proposed methodology in terms of discrimination between roles, robustness against perturbations and preservation of linguistic quality. We envision that this study may contribute to future research on the ethics of AI with regard to whether AI has been used fairly, transparently and appropriately.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Unobservable",
+        "Artificial intelligence",
+        "Computer science",
+        "Process (computing)",
+        "Tracing"
+      ],
+      "keywords": [
+        "智能体",
+        "Unobservable",
+        "Process (computing)",
+        "Tracing"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00440",
+        "pdf": "https://arxiv.org/pdf/2605.00440"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：The evolution of artificial intelligence (AI) has rendered the boundary between humanity and computational machinery increasingly ambiguous.",
+        "method": "从题目“On the Role of Artificial Intelligence in Human-Machine Symbiosis”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、Unobservable、Process (computing)、Tracing。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360284",
+      "title": "Decouple before Integration: Test-time Synthesis of SFT and RLVR Task Vectors",
+      "authors": [
+        "Chaohao Yuan",
+        "Chenghao Xiao",
+        "Yu Rong",
+        "Hong Cheng",
+        "Long-Kai Huang"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "SFT and RLVR represent two fundamental yet distinct paradigms for LLM post-training, each excelling in distinct dimensions. SFT expands knowledge breadth while RLVR enhances reasoning depth. Yet integrating these complementary strengths remains a formidable challenge. Sequential training can cause catastrophic forgetting, and joint optimization often suffers from severe gradient conflicts. We analyze SFT and RLVR through the lens of task vectors and reveal three structural properties behind these failures: a 30* magnitude disparity, 45* sign interference, and heterogeneous module-wise update distributions. These findings show SFT and RLVR are difficult to integrate directly, but they also suggest that the two paradigms modify partly complementary components of the model. Motivated by these observations, we propose Decoupled Test-time Synthesis (DoTS), a post-hoc framework allows SFT and RLVR checkpoints to be trained independently and synthesizes their capabilities only at inference time via task vector arithmetic, without updating model parameters. To reduce interference, DOTS applies selective sparsification with norm-preserving rescaling. It then uses Bayesian optimization on a small set of unlabeled queries to search for combination coefficients on the Pareto frontier of consistency and perplexity. Empirically, \\ours matches or exceeds the performance of training-based SFT--RLVR integration methods across multiple mathematical reasoning benchmarks, incurring only $\\sim$3\\% of the computational cost. When applied to stronger post-trained checkpoints, DOTS surpasses SOTA models and generalizes to out-of-domain benchmarks without re-tuning. Code is available at https://github.com/chaohaoyuan/DoTS.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Task (project management)",
+        "Set (abstract data type)",
+        "Inference",
+        "Consistency (knowledge bases)"
+      ],
+      "keywords": [
+        "序列建模",
+        "Task (project management)",
+        "Set (abstract data type)",
+        "Inference"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00610",
+        "pdf": "https://arxiv.org/pdf/2605.00610"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：SFT and RLVR represent two fundamental yet distinct paradigms for LLM post-training, each excelling in distinct dimensions.",
+        "method": "从题目“Decouple before Integration: Test-time Synthesis of SFT and RLVR Task Vectors”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括序列建模、Task (project management)、Set (abstract data type)、Inference。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "强调效率或延迟优化，可关注线上推理成本。",
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360526",
+      "title": "Structure Liberates: How Constrained Sensemaking Produces More Novel Research Output",
+      "authors": [
+        "James Mooney",
+        "Zae Myung Kim",
+        "Young-Jun Lee",
+        "Dongyeop Kang"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Scientific discovery is an extended process of ideation--surveying prior work, forming hypotheses, and refining reasoning--yet existing approaches treat this phase as a brief preamble despite its central role in research. We introduce SCISENSE, a sensemaking-grounded framework that operationalizes ideation as a structured sequence of eight cognitive stages (Pirolli \\& Card, 2005). We construct SCISENSE-Traj, a 100K-scale dataset of citation-conditioned research trajectories in two modes: Target, where an LLM reconstructs the ideation path leading to a known paper from its cited works, and Infer, where the LLM proposes novel directions from the same citations. We distill these into SCISENSE-LM, a family of sensemaking LLMs spanning 3B to 70B parameters. Contrary to the assumption that looser supervision promotes greater exploration, Target-trained models achieve a 2.0\\% improvement in trajectory quality over Infer-trained models while also producing more novel and diverse outputs. This advantage propagates downstream: coding agents conditioned on Target trajectories produce research artifacts with higher executability and quality than those conditioned on Infer trajectories. This suggests that targeted ideation reduces cognitive burden on downstream agents, freeing them to explore more creatively. SCISENSE offers both a practical tool for augmenting LLM-driven research workflows and a principled testbed for studying how planning shapes scientific discovery.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Sensemaking",
+        "Computer science",
+        "Ideation",
+        "Process (computing)",
+        "Construct (python library)"
+      ],
+      "keywords": [
+        "智能体",
+        "Sensemaking",
+        "Ideation",
+        "Process (computing)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00557",
+        "pdf": "https://arxiv.org/pdf/2605.00557"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Scientific discovery is an extended process of ideation--surveying prior work, forming hypotheses, and refining reasoning--yet existing approaches treat this phase as a brief preamble despite its central role in research...",
+        "method": "从题目“Structure Liberates: How Constrained Sensemaking Produces More Novel Research Output”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、Sensemaking、Ideation、Process (computing)。",
+        "contributions": [
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360186",
+      "title": "Improving LLM Code Generation via Requirement-Aware Curriculum Reinforcement Learning",
+      "authors": [
+        "Shouyu Yin",
+        "Zhao Tian",
+        "Junjie Chen",
+        "Shikai Guo"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Code generation, which aims to automatically generate source code from given programming requirements, has the potential to substantially improve software development efficiency. With the rapid advancement of large language models (LLMs), LLM-based code generation has attracted widespread attention from both academia and industry. However, as programming requirements become increasingly complex, existing LLMs still exhibit notable performance limitations. To address this challenge, recent studies have proposed training-based curriculum reinforcement learning (CRL) strategies to improve LLM code generation performance. Despite their effectiveness, existing CRL approaches suffer from several limitations, including misaligned requirement difficulty perception, the absence of requirement difficulty optimization, and suboptimal curriculum sampling strategies. In CRL-based code generation, programming requirements serve as the sole input to the model, making their quality and difficulty critical to training effectiveness. Motivated by insights from software requirements engineering, we propose RECRL, a novel requirement-aware curriculum reinforcement learning framework for enhancing LLM-based code generation. RECRL automatically perceives model-specific requirement difficulty, optimizes challenging requirements to improve training data utilization, and employs an adaptive curriculum sampling strategy to construct training batches with smoothly varying difficulty. Extensive experiments on five state-of-the-art LLMs across five widely-used code generation benchmarks by comparing with five state-of-the-art baselines, demonstrate the significant effectiveness of RECRL. For example, RECRL achieves an average Pass@1 improvement of 1.23%-5.62% over all state-of-the-art baselines.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Reinforcement learning",
+        "Software engineering",
+        "Curriculum",
+        "Code (set theory)"
+      ],
+      "keywords": [
+        "RAG",
+        "Reinforcement learning",
+        "Curriculum",
+        "Code (set theory)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00433",
+        "pdf": "https://arxiv.org/pdf/2605.00433"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Code generation, which aims to automatically generate source code from given programming requirements, has the potential to substantially improve software development efficiency.",
+        "method": "从题目“Improving LLM Code Generation via Requirement-Aware Curriculum Reinforcement Learning”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括RAG、Reinforcement learning、Curriculum、Code (set theory)。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证RAG是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360281",
+      "title": "Online Self-Calibration Against Hallucination in Vision-Language Models",
+      "authors": [
+        "Minghui Chen",
+        "Chenxu Yang",
+        "Hengjie Zhu",
+        "Dayan Wu",
+        "Zheng Lin",
+        "Qingyi Si"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "Large Vision-Language Models (LVLMs) often suffer from hallucinations, generating descriptions that include visual details absent from the input image. Recent preference alignment methods typically rely on supervision distilled from stronger models such as GPT. However, this offline paradigm introduces a Supervision-Perception Mismatch: the student model is forced to align with fine-grained details beyond its perceptual capacity, learning to guess rather than to see. To obtain reliable self-supervision for online learning, we identify a Generative-Discriminative Gap within LVLMs, where models exhibit higher accuracy on discriminative verification than open-ended generation. Leveraging this capability, we propose \\textbf{O}nline \\textbf{S}elf-\\textbf{CA}lib\\textbf{R}ation (OSCAR), a framework that integrates Monte Carlo Tree Search with a Dual-Granularity Reward Mechanism to construct preference data and iteratively refines the model via Direct Preference Optimization. Extensive experiments demonstrate that OSCAR achieves state-of-the-art performance on hallucination benchmarks while improving general multimodal capabilities.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Discriminative model",
+        "Artificial intelligence",
+        "Construct (python library)",
+        "Preference"
+      ],
+      "keywords": [
+        "校准",
+        "RAG",
+        "对齐",
+        "多模态",
+        "偏好建模",
+        "Discriminative model"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00323",
+        "pdf": "https://arxiv.org/pdf/2605.00323"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Large Vision-Language Models (LVLMs) often suffer from hallucinations, generating descriptions that include visual details absent from the input image.",
+        "method": "从题目“Online Self-Calibration Against Hallucination in Vision-Language Models”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括校准、RAG、对齐、多模态、偏好建模、Discriminative model。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证校准是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360382",
+      "title": "When More Reformulations Hurt: Avoiding Drift using Ranker Feedback",
+      "authors": [
+        "V Venktesh",
+        "Mandeep Rathee",
+        "Avishek Anand"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Modern retrieval pipelines increasingly rely on query reformulation and neural reranking to improve effectiveness, but this comes at a significant computational cost and introduces a fundamental tradeoff between recall and query drift. Generating many reformulated queries can substantially increase recall, yet naively merging or exhaustively reranking their results is prohibitively expensive. In this work, we argue that the core challenge is not reformulation generation itself, but the adaptive selection of reformulations and their retrieved documents under a strict inference budget. We propose ReformIR, a budget-aware retrieval framework that treats query reformulations as first-class features and performs online relevance estimation using a strong reranker as a teacher. Given multiple reformulated queries, ReformIR constructs a large candidate pool and learns a lightweight surrogate model that estimates document utility from reformulation-specific retrieval signals. Under a fixed reranking budget, the surrogate adaptively prioritizes both reformulations and documents, selectively querying a teacher reranker anchored to the original query. This process increases recall while actively suppressing drift through online feature selection over reformulations. We conduct extensive experiments on the MSMARCO passage corpora and TREC Deep Learning benchmarks (DL19-DL22). Our results show that ReformIR consistently outperforms existing reformulation strategies, particularly as the number of reformulations increases, where prior methods suffer from severe quality degradation due to drift. Our findings also suggest a shift in retrieval system design, rather than using large language models as rerankers, their capacity is more effectively leveraged in the reformulation stage with feedback-driven optimization.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Inference",
+        "Relevance (law)",
+        "Selection (genetic algorithm)",
+        "Artificial intelligence"
+      ],
+      "keywords": [
+        "召回",
+        "排序",
+        "重排",
+        "RAG",
+        "Inference",
+        "Relevance (law)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00560",
+        "pdf": "https://arxiv.org/pdf/2605.00560"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Modern retrieval pipelines increasingly rely on query reformulation and neural reranking to improve effectiveness, but this comes at a significant computational cost and introduces a fundamental tradeoff between recall a...",
+        "method": "从题目“When More Reformulations Hurt: Avoiding Drift using Ranker Feedback”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括召回、排序、重排、RAG、Inference、Relevance (law)。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证召回是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360664",
+      "title": "DynamicPO: Dynamic Preference Optimization for Recommendation",
+      "authors": [
+        "Xingyu Hu",
+        "Kai Zhang",
+        "Jiancan Wu",
+        "Shuli Wang",
+        "Chi Wang",
+        "W. Chen",
+        "Yinhua Zhu",
+        "Haitao Wang",
+        "Xingxing Wang",
+        "Xiang Wang"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "In large language model (LLM)-based recommendation systems, direct preference optimization (DPO) effectively aligns recommendations with user preferences, requiring multi-negative objective functions to leverage abundant implicit-feedback negatives and sharpen preference boundaries. However, our empirical analyses reveal a counterintuitive phenomenon, preference optimization collapse, where increasing the number of negative samples can lead to performance degradation despite a continuously decreasing training loss. We further theoretically demonstrate that this collapse arises from gradient suppression, caused by the dominance of easily discriminable negatives over boundary-critical negatives that truly define user preference boundaries. As a result, boundary-relevant signals are under-optimized, weakening the model's decision boundary. Motivated by these observations, we propose DynamicPO (Dynamic Preference Optimization), a lightweight and plug-and-play framework comprising two adaptive mechanisms: Dynamic Boundary Negative Selection, which identifies and prioritizes informative negatives near the model's decision boundary, and Dual-Margin Dynamic beta Adjustment, which calibrates optimization strength per sample according to boundary ambiguity. Extensive experiments on three public datasets show that DynamicPO effectively prevents optimization collapse and improves recommendation accuracy on multi-negative preference optimization methods, with negligible computational overhead. Our code and datasets are available at https://github.com/xingyuHuxingyu/DynamicPO.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Counterintuitive",
+        "Preference",
+        "Leverage (statistics)",
+        "Computer science",
+        "Preference learning"
+      ],
+      "keywords": [
+        "RAG",
+        "偏好建模",
+        "Counterintuitive",
+        "Preference",
+        "Leverage (statistics)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00327",
+        "pdf": "https://arxiv.org/pdf/2605.00327"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：In large language model (LLM)-based recommendation systems, direct preference optimization (DPO) effectively aligns recommendations with user preferences, requiring multi-negative objective functions to leverage abundant...",
+        "method": "从题目“DynamicPO: Dynamic Preference Optimization for Recommendation”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括RAG、偏好建模、Counterintuitive、Preference、Leverage (statistics)。",
+        "contributions": [
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证RAG是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360625",
+      "title": "ML-Bench&Guard: Policy-Grounded Multilingual Safety Benchmark and Guardrail for Large Language Models",
+      "authors": [
+        "Yunhan Zhao",
+        "Zhaorun Chen",
+        "Xingjun Ma",
+        "Yu-Gang Jiang",
+        "Bo Li"
+      ],
+      "published": "2026-05-01",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "As Large Language Models (LLMs) are increasingly deployed in cross-linguistic contexts, ensuring safety in diverse regulatory and cultural environments has become a critical challenge. However, existing multilingual benchmarks largely rely on general risk taxonomies and machine translation, which confines guardrail models to these predefined categories and hinders their ability to align with region-specific regulations and cultural nuances. To bridge these gaps, we introduce ML-Bench, a policy-grounded multilingual safety benchmark covering 14 languages. ML-Bench is constructed directly from regional regulations, where risk categories and fine-grained rules derived from jurisdiction-specific legal texts are directly used to guide the generation of multilingual safety data, enabling culturally and legally aligned evaluation across languages. Building on ML-Bench, we develop ML-Guard, a Diffusion Large Language Model (dLLM)-based guardrail model that supports multilingual safety judgment and policy-conditioned compliance assessment. ML-Guard has two variants, one 1.5B lightweight model for fast `safe/unsafe' checking and a more capable 7B model for customized compliance checking with detailed explanations. We conduct extensive experiments against 11 strong guardrail baselines across 6 existing multilingual safety benchmarks and our ML-Bench, and show that ML-Guard consistently outperforms prior methods. We hope that ML-Bench and ML-Guard can help advance the development of regulation-aware and culturally aligned multilingual guardrail systems.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Benchmark (surveying)",
+        "Bridge (graph theory)",
+        "Multilingualism",
+        "Natural language processing"
+      ],
+      "keywords": [
+        "图学习",
+        "Benchmark (surveying)",
+        "Bridge (graph theory)",
+        "Multilingualism"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00689",
+        "pdf": "https://arxiv.org/pdf/2605.00689"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：As Large Language Models (LLMs) are increasingly deployed in cross-linguistic contexts, ensuring safety in diverse regulatory and cultural environments has become a critical challenge.",
+        "method": "从题目“ML-Bench&Guard: Policy-Grounded Multilingual Safety Benchmark and Guardrail for Large Language Models”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括图学习、Benchmark (surveying)、Bridge (graph theory)、Multilingualism。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证图学习是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7159891987",
+      "title": "D3-Gym: Constructing Real-World Verifiable Environments for Data-Driven Discovery",
+      "authors": [
+        "Hanane Nour Moussa",
+        "Yifei Li",
+        "Zhuoyang Li",
+        "Yankai Yang",
+        "Cheng Tang",
+        "Tianshu Zhang",
+        "Nesreen K. Ahmed",
+        "Ali Payani",
+        "Ziru Chen",
+        "Huan Sun"
+      ],
+      "published": "2026-04-30",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "Despite recent progress in language models and agents for scientific data-driven discovery, further advancing their capabilities is held back by the absence of verifiable environments representing real-world scientific tasks. To fill this gap, we introduce D3-Gym, the first automatically constructed dataset with verifiable environments for scientific Data-Driven Discovery. D3-Gym comprises (1) 565 tasks sourced from 239 real scientific repositories across four disciplines where (2) each task is equipped with a natural language instruction, an executable environment with pre-installed dependencies, input dataset and artifact previews, a reference code solution, and an automatically synthesized evaluation script. Rigorous evaluation of the quality of the verification signal in D3-Gym confirms that our evaluation scripts achieve 87.5% agreement with human-annotated gold standards and strong alignment in domain-specific evaluation logic, showing their scientific soundness. Further, training on trajectories sampled from D3-Gym yields consistent and substantial gains across Qwen3 models of varying sizes on ScienceAgentBench, boosting Qwen3-32B by 7.8 absolute points and substantially shrinking the gap with strong proprietary models. All D3-Gym artifacts (environments, creation workflow, trajectories, and models) can be found at https://github.com/OSU-NLP-Group/D3-Gym.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Verifiable secret sharing",
+        "Computer science",
+        "Executable",
+        "Scripting language",
+        "Artifact (error)"
+      ],
+      "keywords": [
+        "智能体",
+        "指令微调",
+        "对齐",
+        "Verifiable secret sharing",
+        "Executable",
+        "Scripting language"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.27977",
+        "pdf": "https://arxiv.org/pdf/2604.27977"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Despite recent progress in language models and agents for scientific data-driven discovery, further advancing their capabilities is held back by the absence of verifiable environments representing real-world scientific t...",
+        "method": "从题目“D3-Gym: Constructing Real-World Verifiable Environments for Data-Driven Discovery”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、指令微调、对齐、Verifiable secret sharing、Executable、Scripting language。",
+        "contributions": [
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360735",
+      "title": "Why Do LLMs Struggle in Strategic Play? Broken Links Between Observations, Beliefs, and Actions",
+      "authors": [
+        "Jan Sobotka",
+        "Mustafa O. Karabag",
+        "Ufuk Topcu"
+      ],
+      "published": "2026-04-30",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "Large language models (LLMs) are increasingly tasked with strategic decision-making under incomplete information, such as in negotiation and policymaking. While LLMs can excel at many such tasks, they also fail in ways that are poorly understood. We shed light on these failures by uncovering two fundamental gaps in the internal mechanisms underlying the decision-making of LLMs in incomplete-information games, supported by experiments with open-weight models Llama 3.1, Qwen3, and gpt-oss. First, an observation-belief gap: LLMs encode internal beliefs about latent game states that are substantially more accurate than their own verbal reports, yet these beliefs are brittle. In particular, the belief accuracy degrades with multi-hop reasoning, exhibits primacy and recency biases, and drifts away from Bayesian coherence over extended interactions. Second, a belief-action gap: The implicit conversion of internal beliefs into actions is weaker than that of the beliefs externalized in the prompt, yet neither belief-conditioning consistently achieves higher game payoffs. These results show how analyzing LLMs' internal processes can expose systematic vulnerabilities that warrant caution before deploying LLMs in strategic domains without robust guardrails.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Negotiation",
+        "Warrant",
+        "Coherence (philosophical gambling strategy)",
+        "Social psychology",
+        "Positive economics"
+      ],
+      "keywords": [
+        "CVR 预估",
+        "Negotiation",
+        "Warrant",
+        "Coherence (philosophical gambling strategy)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00226",
+        "pdf": "https://arxiv.org/pdf/2605.00226"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Large language models (LLMs) are increasingly tasked with strategic decision-making under incomplete information, such as in negotiation and policymaking.",
+        "method": "从题目“Why Do LLMs Struggle in Strategic Play? Broken Links Between Observations, Beliefs, and Actions”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括CVR 预估、Negotiation、Warrant、Coherence (philosophical gambling strategy)。",
+        "contributions": [
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证CVR 预估是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360527",
+      "title": "The $\\textit{Silicon Society}$ Cookbook: Design Space of LLM-based Social Simulations",
+      "authors": [
+        "Aurélien Bück-Kaeffer",
+        "Sneheel Sarangi",
+        "Maximilian Puelma Touzel",
+        "Reihaneh Rabbany",
+        "Zachary Yang",
+        "Jean-François Godbout"
+      ],
+      "published": "2026-04-30",
+      "updated": "2026-05-06T06:10:43.113611",
+      "summary": "Studies attempting to simulate human behavior with $\\textit{Silicon Societies}$ grow in numbers while LLM-only social networks have started appearing outside of controlled settings. However, the design space of these networks remains under-studied, which contributes to a gap in validating model realism. To enable future works to make more informed design decisions, we perform a systematic analysis of the consequences and interactions of key design choices in simulated social networks, including the choice of base model used to model individual agents, and how they are connected to each other. Using surveys as a proxy for agent opinions, our findings suggest that the geometry of the design space is non-trivial, with some parameters behaving in additive ways while others display more complex interactions. In particular, the choice of the base LLM is the most important variable impacting the simulation outcomes.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Space (punctuation)",
+        "Base (topology)",
+        "Key (lock)",
+        "Variable (mathematics)"
+      ],
+      "keywords": [
+        "智能体",
+        "Space (punctuation)",
+        "Base (topology)",
+        "Key (lock)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00197",
+        "pdf": "https://arxiv.org/pdf/2605.00197"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Studies attempting to simulate human behavior with $\\textit{Silicon Societies}$ grow in numbers while LLM-only social networks have started appearing outside of controlled settings.",
+        "method": "从题目“The $\\textit{Silicon Society}$ Cookbook: Design Space of LLM-based Social Simulations”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、Space (punctuation)、Base (topology)、Key (lock)。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360445",
+      "title": "XekRung Technical Report",
+      "authors": [
+        "Jiutian Zeng",
+        "Junjie Li",
+        "Chengwei Dai",
+        "Jie Liang",
+        "Zhaoyu Hu",
+        "Yiliang Zhang",
+        "Ziang Weng",
+        "Longtao Huang",
+        "Dongjie Zhang",
+        "Libin Dong",
+        "Yang Ge",
+        "Yuanda Wang",
+        "Kaiwen Lv Kacuila",
+        "Bingyu Zhu",
+        "Jing Wang",
+        "Jin Xu"
+      ],
+      "published": "2026-04-30",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "We present XekRung, a frontier large language model for cybersecurity, designed to provide comprehensive security capabilities. To achieve this, we develop diverse data synthesis pipelines tailored to the cybersecurity domain, enabling the scalable construction of high-quality training data and providing a strong foundation for cybersecurity knowledge and understanding. Building on this foundation, we establish a complete training pipeline spanning continued pre-training (CPT), supervised fine-tuning (SFT), and reinforcement learning (RL) to further extend the model's capabilities. We further introduce a multi-dimensional evaluation system to guide the iterative improvement of both domain-specific and general-purpose abilities. Extensive experiments demonstrate that XekRung achieves state-of-the-art performance on cybersecurity-specific benchmarks among models of the same scale, while maintaining strong performance on general benchmarks.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "Pipeline (software)",
+        "Scalability",
+        "Technical report",
+        "Reinforcement learning"
+      ],
+      "keywords": [
+        "Pipeline (software)",
+        "Scalability",
+        "Technical report"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00072",
+        "pdf": "https://arxiv.org/pdf/2605.00072"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：We present XekRung, a frontier large language model for cybersecurity, designed to provide comprehensive security capabilities.",
+        "method": "从题目“XekRung Technical Report”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括Pipeline (software)、Scalability、Technical report。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证Pipeline (software)是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360181",
+      "title": "ARMOR 2025: A Military-Aligned Benchmark for Evaluating Large Language Model Safety Beyond Civilian Contexts",
+      "authors": [
+        "Sydney Johns",
+        "Heng Jin",
+        "Chaoyu Zhang",
+        "Y. Thomas Hou",
+        "Wenjing Lou"
+      ],
+      "published": "2026-04-30",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Large language models (LLMs) are now being explored for defense applications that require reliable and legally compliant decision support. They also hold significant potential to enhance decision making, coordination, and operational efficiency in military contexts. These uses demand evaluation methods that reflect the doctrinal standards that guide real military operations. Existing safety benchmarks focus on general social risks and do not test whether models follow the legal and ethical rules that govern real military operations. To address this gap, we introduce ARMOR 2025, a military aligned safety benchmark grounded in three core military doctrines the Law of War, the Rules of Engagement, and the Joint Ethics Regulation. We extract doctrinal text from these sources and generate multiple choice questions that preserve the intended meaning of each rule. The benchmark is organized through a taxonomy informed by the Observe Orient Decide Act (OODA) decision making framework. This structure enables systematic testing of accuracy and refusal across military relevant decision types. This benchmark features a structured 12-category taxonomy, 519 doctrinally grounded prompts, and rigorous evaluation procedures applied to 21 commercial LLMs. Evaluation results reveal critical gaps in safety alignment for military applications.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Benchmark (surveying)",
+        "Engineering",
+        "Operations research",
+        "Management science",
+        "Risk analysis (engineering)"
+      ],
+      "keywords": [
+        "CTR 预估",
+        "对齐",
+        "Benchmark (surveying)",
+        "Decision model",
+        "Meaning (existential)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00245",
+        "pdf": "https://arxiv.org/pdf/2605.00245"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Large language models (LLMs) are now being explored for defense applications that require reliable and legally compliant decision support.",
+        "method": "从题目“ARMOR 2025: A Military-Aligned Benchmark for Evaluating Large Language Model Safety Beyond Civilian Contexts”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括CTR 预估、对齐、Benchmark (surveying)、Decision model、Meaning (existential)。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证CTR 预估是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360435",
+      "title": "Pessimism-Free Offline Learning in General-Sum Games via KL Regularization",
+      "authors": [
+        "Claire Chen",
+        "Yuheng Zhang"
+      ],
+      "published": "2026-04-30",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Offline multi-agent reinforcement learning in general-sum settings is challenged by the distribution shift between logged datasets and target equilibrium policies. While standard methods rely on manual pessimistic penalties, we demonstrate that KL regularization suffices to stabilize learning and achieve equilibrium recovery. We propose General-sum Anchored Nash Equilibrium (GANE), which recovers regularized Nash equilibria at an accelerated statistical rate of $\\widetilde{O}(1/n)$. For computational tractability, we develop General-sum Anchored Mirror Descent (GAMD), an iterative algorithm converging to a Coarse Correlated Equilibrium at the standard rate of $\\widetilde{O}(1/\\sqrt{n}+1/T)$. These results establish KL regularization as a standalone mechanism for pessimism-free offline learning that achieves equivalent or accelerated rates in multi-player general-sum games.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Regularization (linguistics)",
+        "Nash equilibrium",
+        "Computer science",
+        "Offline learning",
+        "Reinforcement learning"
+      ],
+      "keywords": [
+        "智能体",
+        "Regularization (linguistics)",
+        "Nash equilibrium",
+        "Offline learning"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00264",
+        "pdf": "https://arxiv.org/pdf/2605.00264"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Offline multi-agent reinforcement learning in general-sum settings is challenged by the distribution shift between logged datasets and target equilibrium policies.",
+        "method": "从题目“Pessimism-Free Offline Learning in General-Sum Games via KL Regularization”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、Regularization (linguistics)、Nash equilibrium、Offline learning。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7160360443",
+      "title": "DeGenTWeb: A First Look at LLM-dominant Websites",
+      "authors": [
+        "Shuai He",
+        "Calvin Ardi",
+        "Ramesh Govindan",
+        "Harsha V. Madhyastha"
+      ],
+      "published": "2026-04-30",
+      "updated": "2026-05-07T06:12:12.454206",
+      "summary": "Many recent news reports have claimed that content generated by large language models (LLMs) is taking over the web. However, these claims are typically not based on a representative sample of the web and the methodology underlying them is often opaque. Moreover, when aiming to minimize the chances of falsely attributing human-authored content to LLMs, we find that detectors of LLM-generated text perform much worse than advertised. Consequently, we lack an understanding of the true prevalence and characteristics of LLM content on the web. We describe DeGenTWeb which systematically identifies LLM-dominant websites: sites whose content has been generated using LLMs with little human input. We show how to adapt detectors of LLM-generated text for use on web pages, and how to aggregate detection results from multiple pages on a site for accurate site-level categorization. Using DeGenTWeb, we find that LLM-dominant sites are highly prevalent both in data from Common Crawl and in Bing's search results, and that this share is growing over time. We also show that continuing to accurately identify such sites appears challenging given the capabilities of the latest LLMs.",
+      "track": "llm",
+      "trackLabel": "大模型",
+      "accent": "#5e6ad2",
+      "categories": [
+        "Computer science",
+        "World Wide Web",
+        "Aggregate (composite)",
+        "Sample (material)",
+        "Data science"
+      ],
+      "keywords": [
+        "召回",
+        "Aggregate (composite)",
+        "Sample (material)",
+        "Content (measure theory)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2605.00087",
+        "pdf": "https://arxiv.org/pdf/2605.00087"
+      },
+      "deconstruction": {
+        "problem": "大模型场景下的核心问题：Many recent news reports have claimed that content generated by large language models (LLMs) is taking over the web.",
+        "method": "从题目“DeGenTWeb: A First Look at LLM-dominant Websites”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括召回、Aggregate (composite)、Sample (material)、Content (measure theory)。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证召回是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "是否说明基础模型、上下文长度和训练数据规模",
+          "是否包含人工评测与自动评测的一致性分析",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7159734281",
+      "title": "CARD: Non-Uniform Quantization of Visual Semantic Unit for Generative Recommendation",
+      "authors": [
+        "Yibiao Wei",
+        "Jie Zou",
+        "Pengfei Zhang",
+        "Xiao Ao",
+        "Weikang Guo",
+        "Zeyu Ma",
+        "Yang Yang"
+      ],
+      "published": "2026-04-29",
+      "updated": "2026-05-03T06:09:08.739853",
+      "summary": "Generative recommendation frameworks typically represent items as discrete Semantic IDs (SIDs). While existing studies have sought to enhance SID construction by incorporating multimodal content, collaborative signals, or more advanced quantization techniques, learning high-quality SIDs still faces two key challenges: (1) The two-stage generative recommendation paradigm (SID construction and autoregressive generation) provides insufficient supervision for heterogeneous fusion, which hinders learning high-quality SIDs, and (2) non-uniform embeddings lead to codeword imbalance and generation bias. To address these challenges, we propose a novel generative recommendation framework, called CARD. CARD introduces a visual semantic unit that unifies textual, visual, and collaborative signals into a structured visual representation prior to encoding, enabling holistic semantic modeling and effectively alleviating the semantic gap, thereby reducing the reliance on supervision signals during SID learning. Furthermore, to deal with the highly non-uniform distribution of item semantic embeddings in recommendation scenarios, we develop a non-uniform quantization framework (NU-RQ-VAE), which incorporates a learnable and invertible non-uniform transformation into the quantization process to map skewed semantic distributions into a more balanced latent space, thereby significantly improving codebook utilization and quantization accuracy. Experiments on multiple datasets show that CARD consistently outperforms baseline methods under various settings; meanwhile, the proposed non-uniform transformation module is plug-and-play and remains robust across different quantization schemes. Code is available at https://github.com/HAI-UESTC/CARD.",
+      "track": "recsys",
+      "trackLabel": "推荐系统",
+      "accent": "#2f7d67",
+      "categories": [
+        "Computer science",
+        "Codebook",
+        "Quantization (signal processing)",
+        "Artificial intelligence",
+        "Generative grammar"
+      ],
+      "keywords": [
+        "多模态",
+        "Codebook",
+        "Quantization (signal processing)",
+        "Generative grammar"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.26427",
+        "pdf": "https://arxiv.org/pdf/2604.26427"
+      },
+      "deconstruction": {
+        "problem": "推荐系统场景下的核心问题：Generative recommendation frameworks typically represent items as discrete Semantic IDs (SIDs).",
+        "method": "从题目“CARD: Non-Uniform Quantization of Visual Semantic Unit for Generative Recommendation”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括多模态、Codebook、Quantization (signal processing)、Generative grammar。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证多模态是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "召回率、NDCG、MRR 等排序指标是否完整",
+          "负采样和时间切分是否避免泄漏",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "双塔召回/排序实验骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass TwoTower(nn.Module):\n    def __init__(self, user_dim: int, item_dim: int, hidden: int = 128):\n        super().__init__()\n        self.user_tower = nn.Sequential(nn.Linear(user_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n        self.item_tower = nn.Sequential(nn.Linear(item_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n\n    def forward(self, user_features, item_features):\n        user_vec = F.normalize(self.user_tower(user_features), dim=-1)\n        item_vec = F.normalize(self.item_tower(item_features), dim=-1)\n        return user_vec @ item_vec.T\n\ndef contrastive_loss(scores):\n    labels = torch.arange(scores.size(0), device=scores.device)\n    return F.cross_entropy(scores, labels)\n",
+        "note": "适合先复现召回阶段的语义匹配，再接业务负采样、hard negative 和 ANN 检索。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7159733795",
+      "title": "TimeMM: Time-as-Operator Spectral Filtering for Dynamic Multimodal Recommendation",
+      "authors": [
+        "Wei Yang",
+        "Rui Zhong",
+        "Zihan Lin",
+        "Xiaodan Wang",
+        "Cheng Chen (136164)",
+        "Huan Ren",
+        "Yao Hu"
+      ],
+      "published": "2026-04-29",
+      "updated": "2026-05-03T06:09:08.739853",
+      "summary": "Multimodal recommendation improves user modeling by integrating collaborative signals with heterogeneous item content. In real applications, user interests evolve over time and exhibit nonstationary dynamics, where different preference factors change at different rates. This challenge is amplified in multimodal settings because visual and textual cues can dominate decisions under different temporal regimes. Despite strong progress, most multimodal recommenders still rely on static interaction graphs or coarse temporal heuristics, which limits their ability to model continuous preference evolution with fine-grained temporal adaptation. To address these limitations, we propose TimeMM, a time-conditioned spectral filtering framework for dynamic multimodal recommendation. TimeMM instantiates Time-as-Operator by mapping interaction recency to a family of parametric temporal kernels that reweight edges on the user--item graph, producing component-specific representations without explicit eigendecomposition. To capture non-stationary interests, we introduce Adaptive Spectral Filtering that mixes the operator bank according to temporal context, yielding prediction-specific effective spectral responses. To account for modality-specific temporal sensitivity, we further propose Spectral-Aware Modality Routing that calibrates visual and textual contributions conditioned on the same temporal context. Finally, a ranking-space Spectral Diversity Regularization encourages complementary expert behaviors and prevents filter-bank collapse. Extensive experiments on real-world benchmarks demonstrate that TimeMM consistently outperforms state-of-the-art multimodal recommenders while maintaining linear-time scalability.",
+      "track": "recsys",
+      "trackLabel": "推荐系统",
+      "accent": "#2f7d67",
+      "categories": [
+        "Computer science",
+        "Parametric statistics",
+        "Regularization (linguistics)",
+        "Artificial intelligence",
+        "Operator (biology)"
+      ],
+      "keywords": [
+        "排序",
+        "CTR 预估",
+        "RAG",
+        "多模态",
+        "图学习",
+        "偏好建模"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.26247",
+        "pdf": "https://arxiv.org/pdf/2604.26247"
+      },
+      "deconstruction": {
+        "problem": "推荐系统场景下的核心问题：Multimodal recommendation improves user modeling by integrating collaborative signals with heterogeneous item content.",
+        "method": "从题目“TimeMM: Time-as-Operator Spectral Filtering for Dynamic Multimodal Recommendation”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括排序、CTR 预估、RAG、多模态、图学习、偏好建模。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证排序是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "召回率、NDCG、MRR 等排序指标是否完整",
+          "负采样和时间切分是否避免泄漏",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7159734263",
+      "title": "Factorized Latent Reasoning for LLM-based Recommendation",
+      "authors": [
+        "Tianqi Gao",
+        "Chengkai Huang",
+        "Zihan Wang",
+        "Cao Liu",
+        "Ke Zeng",
+        "Lina Yao"
+      ],
+      "published": "2026-04-29",
+      "updated": "2026-05-03T06:09:08.739853",
+      "summary": "Large language models (LLMs) have recently been adopted for recommendation by framing user preference modeling as a language generation problem. However, existing latent reasoning approaches typically represent user intent with a single latent vector, which struggles to capture the inherently multi-faceted nature of user preferences. We propose Factorized Latent Reasoning (FLR), a novel framework for LLM-based sequential recommendation that decomposes latent reasoning into multiple disentangled preference factors. FLR introduces a lightweight multi-factor attention module that iteratively refines a latent thought representation, where each factor attends to distinct aspects of the user's interaction history. To encourage diversity and specialization, we design orthogonality, attention diversity, and sparsity regularization objectives, and dynamically aggregate factor contributions for the final prediction. We further integrate FLR with an efficient reinforcement learning strategy based on group-relative policy optimization, enabling stable alignment directly in the latent reasoning space. Experiments on multiple benchmarks show that FLR consistently outperforms strong baselines while improving robustness and interpretability.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Computer science",
+        "Artificial intelligence",
+        "Machine learning",
+        "Regularization (linguistics)",
+        "Framing (construction)"
+      ],
+      "keywords": [
+        "RAG",
+        "对齐",
+        "序列建模",
+        "偏好建模",
+        "Regularization (linguistics)",
+        "Framing (construction)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.26760",
+        "pdf": "https://arxiv.org/pdf/2604.26760"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：Large language models (LLMs) have recently been adopted for recommendation by framing user preference modeling as a language generation problem.",
+        "method": "从题目“Factorized Latent Reasoning for LLM-based Recommendation”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括RAG、对齐、序列建模、偏好建模、Regularization (linguistics)、Framing (construction)。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "强调效率或延迟优化，可关注线上推理成本。",
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7159734032",
+      "title": "When Model Editing Meets Service Evolution: A Knowledge-Update Perspective for Service Recommendation",
+      "authors": [
+        "Guodong Fan",
+        "Cuiyun Gao",
+        "Chun Yong Chong",
+        "Lu Zhang (50563)",
+        "Jing Li (10611)",
+        "Jinglin Zhang",
+        "Shizhan Chen"
+      ],
+      "published": "2026-04-29",
+      "updated": "2026-05-02T06:10:54.344120",
+      "summary": "The rapid evolution of software services poses substantial challenges to the design and implementation of effective recommendation systems. Traditional service recommendation approaches often rely on static representations and historical usage data, which are insufficient for adapting to the dynamic and evolving nature of service ecosystems. Recently, large language models (LLMs) have shown strong potential to overcome these limitations by leveraging rich contextual understanding. However, their practical use faces two major challenges: outdated service facts and invalid or redundant services. To address these issues, we propose EVOREC, an evolution-aware framework for service recommendation that leverages model editing in a locate-then-edit paradigm to incorporate updated service facts without costly retraining efficiently. This allows the model to remain aligned with evolving service ecosystems. To address invalid service issues, we introduce a Finite Automata (FA)-based constrained decoding mechanism with deduplication, which enforces structural and semantic validity while eliminating repeated services. Experiments on real-world service datasets demonstrate that our framework consistently outperforms existing baselines, e.g., achieving an average relative improvement of 25.9% in Recall@5. Moreover, under evolving service scenarios, our approach outperforms model fine-tuning approaches by 22.3%, demonstrating strong adaptability to service evolution and providing a practical solution for service recommendation in dynamic ecosystems",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Computer science",
+        "Service (business)",
+        "Service provider",
+        "Service delivery framework",
+        "Service design"
+      ],
+      "keywords": [
+        "RAG",
+        "图学习",
+        "Service (business)",
+        "Service provider",
+        "Service delivery framework"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.26686",
+        "pdf": "https://arxiv.org/pdf/2604.26686"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：The rapid evolution of software services poses substantial challenges to the design and implementation of effective recommendation systems.",
+        "method": "从题目“When Model Editing Meets Service Evolution: A Knowledge-Update Perspective for Service Recommendation”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括RAG、图学习、Service (business)、Service provider、Service delivery framework。",
+        "contributions": [
+          "强调效率或延迟优化，可关注线上推理成本。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证RAG是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7159734029",
+      "title": "Recommendations for Efficient and Responsible LLM Adoption within Industrial Software Development",
+      "authors": [
+        "Krishna Ronanki",
+        "Beatriz Cabrero‐Daniel",
+        "Tomas Herda",
+        "Stefan Sitkovich",
+        "Jennifer Horkoff",
+        "Christian Berger"
+      ],
+      "published": "2026-04-29",
+      "updated": "2026-05-02T06:10:54.344120",
+      "summary": "Context: Large language models (LLMs) are observed to have a significant positive impact on various software engineering (SE) activities. With improved accessibility, the adoption of powerful LLMs in industry has surged recently. However, there is a lack of actionable best practices for the efficient and responsible adoption of LLMs within industrial software settings. Objectives: We developed seven actionable recommendations to address this research gap. Methods: We conducted a multi-case study with three organisations that use LLMs within their SE activities and synthesised seven recommendations through qualitative thematic analysis. We conducted a complementary online survey with software practitioners from various industries to evaluate the perceived relevance of our recommendations. Results: Our results and recommendations focus on (i) users' preference to use LLMs as AI assistants, (ii) the importance of relevant stakeholders' satisfaction in the LLM-output evaluation, (iii) scoping the applicability of LLMs within SE tasks, (iv) the effect of LLMs on SE workflows, (v) the necessity and directions for developing human oversight mechanisms, and (vi) the necessary skills for practitioners for leveraging LLMs within SE. The online survey indicates a high level of agreement from the participants regarding the perceived relevance of the recommendations. Conclusion: We outline future research directions, including mapping the seven recommendations to the principles of the EU AI Act (AIA) in order to examine how they relate to the current regulatory compliance frameworks.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Relevance (law)",
+        "Thematic analysis",
+        "Preference",
+        "Order (exchange)",
+        "Knowledge management"
+      ],
+      "keywords": [
+        "RAG",
+        "偏好建模",
+        "Relevance (law)",
+        "Thematic analysis",
+        "Preference"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.26590",
+        "pdf": "https://arxiv.org/pdf/2604.26590"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：Context: Large language models (LLMs) are observed to have a significant positive impact on various software engineering (SE) activities.",
+        "method": "从题目“Recommendations for Efficient and Responsible LLM Adoption within Industrial Software Development”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括RAG、偏好建模、Relevance (law)、Thematic analysis、Preference。",
+        "contributions": [
+          "强调效率或延迟优化，可关注线上推理成本。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证RAG是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7155654757",
+      "title": "WPGRec: Wavelet Packet Guided Graph Enhanced Sequential Recommendation",
+      "authors": [
+        "Peilin Liu",
+        "Zhiquan Ji",
+        "Gang Yan"
+      ],
+      "published": "2026-04-23",
+      "updated": "2026-04-27T06:08:05.726132",
+      "summary": "Sequential recommendation aims to model users' evolving interests from noisy and non-stationary interaction streams, where long-term preferences, short-term intents, and localized behavioral fluctuations may coexist across temporal scales. Existing frequency-domain methods mainly rely on either global spectral operations or filter-based wavelet processing. However, global spectral operations tend to entangle local transients with long-range dependencies, while filter-based wavelet pipelines may suffer from temporal misalignment and boundary artifacts during multi-scale decomposition and reconstruction. Moreover, collaborative signals from the user-item interaction graph are often injected through scale-inconsistent auxiliary modules, limiting the benefit of jointly modeling temporal dynamics and structural dependencies. To address these issues, we propose Wavelet Packet Guided Graph Enhanced Sequential Recommendation (WPGRec), a unified time-frequency and graph-enhanced framework that aligns multi-resolution temporal modeling with graph propagation at matching scales. WPGRec first applies a full-tree undecimated stationary wavelet packet transform to generate equal-length, shift-invariant subband sequences. It then performs subband-wise interaction-graph propagation to inject high-order collaborative information while preserving temporal alignment across resolutions. Finally, an energy- and spectral-flatness-aware gated fusion module adaptively aggregates informative subbands and suppresses noise-like components. Extensive experiments on four public benchmarks show that WPGRec consistently outperforms sequential and graph-based baselines, with particularly clear gains on sparse and behaviorally complex datasets, highlighting the effectiveness of band-consistent structure injection and adaptive subband fusion for sequential recommendation.",
+      "track": "recsys",
+      "trackLabel": "推荐系统",
+      "accent": "#2f7d67",
+      "categories": [
+        "Computer science",
+        "Wavelet packet decomposition",
+        "Wavelet",
+        "Artificial intelligence",
+        "Graph"
+      ],
+      "keywords": [
+        "CTR 预估",
+        "对齐",
+        "序列建模",
+        "图学习",
+        "偏好建模",
+        "Wavelet packet decomposition"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.21305",
+        "pdf": "https://arxiv.org/pdf/2604.21305"
+      },
+      "deconstruction": {
+        "problem": "推荐系统场景下的核心问题：Sequential recommendation aims to model users' evolving interests from noisy and non-stationary interaction streams, where long-term preferences, short-term intents, and localized behavioral fluctuations may coexist acro...",
+        "method": "从题目“WPGRec: Wavelet Packet Guided Graph Enhanced Sequential Recommendation”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括CTR 预估、对齐、序列建模、图学习、偏好建模、Wavelet packet decomposition。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证CTR 预估是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "召回率、NDCG、MRR 等排序指标是否完整",
+          "负采样和时间切分是否避免泄漏",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "双塔召回/排序实验骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass TwoTower(nn.Module):\n    def __init__(self, user_dim: int, item_dim: int, hidden: int = 128):\n        super().__init__()\n        self.user_tower = nn.Sequential(nn.Linear(user_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n        self.item_tower = nn.Sequential(nn.Linear(item_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n\n    def forward(self, user_features, item_features):\n        user_vec = F.normalize(self.user_tower(user_features), dim=-1)\n        item_vec = F.normalize(self.item_tower(item_features), dim=-1)\n        return user_vec @ item_vec.T\n\ndef contrastive_loss(scores):\n    labels = torch.arange(scores.size(0), device=scores.device)\n    return F.cross_entropy(scores, labels)\n",
+        "note": "适合先复现召回阶段的语义匹配，再接业务负采样、hard negative 和 ANN 检索。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7155654388",
+      "title": "EVENT5Ws: A Large Dataset for Open-Domain Event Extraction from Documents",
+      "authors": [
+        "Praval Sharma",
+        "Ashok Samal",
+        "Leen-Kiat Soh",
+        "Deepti Joshi"
+      ],
+      "published": "2026-04-23",
+      "updated": "2026-04-26T06:07:20.044499",
+      "summary": "Event extraction identifies the central aspects of events from text. It supports event understanding and analysis, which is crucial for tasks such as informed decision-making in emergencies. Therefore, it is necessary to develop automated event extraction approaches. However, existing datasets for algorithm development have limitations, including limited coverage of event types in closed-domain settings and a lack of large, manually verified dataset in open-domain settings. To address these limitations, we create EVENT5Ws , a large, manually annotated, and statistically verified open-domain event extraction dataset. We design a systematic annotation pipeline to create the dataset and provide empirical insights into annotation complexity. Using EVENT5Ws, we evaluate state-of-the-art pre-trained large language models and establish a benchmark for future research. We further show that models trained on EVENT5Ws generalize effectively to datasets from different geographical contexts, which demonstrates its potential for developing generalizable algorithms. Finally, we summarize the lessons learned during the dataset development and provide recommendations to support future large-scale dataset development.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Computer science",
+        "Event (particle physics)",
+        "Benchmark (surveying)",
+        "Pipeline (software)",
+        "Annotation"
+      ],
+      "keywords": [
+        "召回",
+        "RAG",
+        "图学习",
+        "Event (particle physics)",
+        "Benchmark (surveying)",
+        "Pipeline (software)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.21890",
+        "pdf": "https://arxiv.org/pdf/2604.21890"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：Event extraction identifies the central aspects of events from text.",
+        "method": "从题目“EVENT5Ws: A Large Dataset for Open-Domain Event Extraction from Documents”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括召回、RAG、图学习、Event (particle physics)、Benchmark (surveying)、Pipeline (software)。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证召回是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7155654530",
+      "title": "Following the Eye-Tracking Evidence: Established Web-Search Assumptions Fail in Carousel Interfaces",
+      "authors": [
+        "Jingwei Kang",
+        "Maarten de Rijke",
+        "Harrie Oosterhuis"
+      ],
+      "published": "2026-04-22",
+      "updated": "2026-04-27T06:08:05.726132",
+      "summary": "Carousel interfaces have been the de-facto standard for streaming media services for over a decade. Yet, there has been very little research into user behavior with such interfaces, which thus remains poorly understood. Due to this lack of empirical research, previous work has assumed that behaviors established in single-list web-search interfaces, such as the F-pattern and the examination hypothesis, also apply to carousel interfaces, for instance when designing click models or evaluation metrics. We analyze a recently-released interaction and examination dataset resulting from an eye-tracking study performed on carousel interfaces to verify whether these assumptions actually hold. We find that (i)~the F-pattern holds only for vertical examination and not for horizontal swiping; additionally, we discover that, when conditioned on a click, user examination follows an L-pattern unique to carousel interfaces; (ii)~click-through-rates conditioned on examination indicate that the well-known examination hypothesis does not hold in carousel interfaces; and (iii)~contrary to the assumptions of previous work, users generally ignore carousel headings and focus directly on the content items. Our findings show that many user behavior assumptions, especially concerning examination patterns, do not transfer from web search interfaces to carousel recommendation settings. Our work shows that the field lacks a reliable foundation on which to build models of user behavior with these interfaces. Consequently, a re-evaluation of existing metrics and click models for carousel interfaces may be warranted.",
+      "track": "recsys",
+      "trackLabel": "推荐系统",
+      "accent": "#2f7d67",
+      "categories": [
+        "Computer science",
+        "Empirical examination",
+        "Focus (optics)",
+        "Human–computer interaction",
+        "Field (mathematics)"
+      ],
+      "keywords": [
+        "Empirical examination",
+        "Focus (optics)",
+        "Field (mathematics)"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.21019",
+        "pdf": "https://arxiv.org/pdf/2604.21019"
+      },
+      "deconstruction": {
+        "problem": "推荐系统场景下的核心问题：Carousel interfaces have been the de-facto standard for streaming media services for over a decade.",
+        "method": "从题目“Following the Eye-Tracking Evidence: Established Web-Search Assumptions Fail in Carousel Interfaces”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括Empirical examination、Focus (optics)、Field (mathematics)。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证Empirical examination是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "召回率、NDCG、MRR 等排序指标是否完整",
+          "负采样和时间切分是否避免泄漏",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "双塔召回/排序实验骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass TwoTower(nn.Module):\n    def __init__(self, user_dim: int, item_dim: int, hidden: int = 128):\n        super().__init__()\n        self.user_tower = nn.Sequential(nn.Linear(user_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n        self.item_tower = nn.Sequential(nn.Linear(item_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n\n    def forward(self, user_features, item_features):\n        user_vec = F.normalize(self.user_tower(user_features), dim=-1)\n        item_vec = F.normalize(self.item_tower(item_features), dim=-1)\n        return user_vec @ item_vec.T\n\ndef contrastive_loss(scores):\n    labels = torch.arange(scores.size(0), device=scores.device)\n    return F.cross_entropy(scores, labels)\n",
+        "note": "适合先复现召回阶段的语义匹配，再接业务负采样、hard negative 和 ANN 检索。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7155246647",
+      "title": "What Security and Privacy Transparency Users Need from Consumer-Facing Generative AI",
+      "authors": [
+        "Jiaxun Cao",
+        "Yu Dong",
+        "C. Zhan",
+        "Rithvik Neti",
+        "Sai Teja Peddinti",
+        "Pardis Emami-Naeini"
+      ],
+      "published": "2026-04-19",
+      "updated": "2026-04-23T06:20:18.424754",
+      "summary": "Users increasingly rely on consumer-facing generative AI (GenAI) for tasks ranging from everyday needs to sensitive use cases. Yet, it remains unclear whether and how existing security and privacy (S&P) communications in GenAI tools shape users' adoption decisions and subsequent experiences. Understanding how users seek, interpret, and evaluate S&P information is critical for designing usable transparency that users can trust and act on. We conducted semi-structured interviews and design sessions with 21 U.S. GenAI users. We find that available S&P information rarely drove initial adoption in practice, as participants often perceived it as incomplete, ineffective, or lacking credibility. Instead, they relied on rough proxies, such as popularity, to infer S&P practices. After adoption, uncertainty about S&P practices constrained participants' willingness to use GenAI tools, particularly in high-stakes contexts, and, in some cases, contributed to discontinued use. Participants therefore called for transparency that supports decision-making and use, including trustworthy information (e.g., independent evaluations) and usable interfaces (e.g., on-demand disclosure). We synthesize participants' desired design practices into five dimensions to facilitate systematic future investigation into best practices. We conclude with recommendations for researchers, designers, and policymakers to improve S&P transparency in consumer-facing GenAI.",
+      "track": "recsys",
+      "trackLabel": "推荐系统",
+      "accent": "#2f7d67",
+      "categories": [
+        "Transparency (behavior)",
+        "USable",
+        "Trustworthiness",
+        "Internet privacy",
+        "Computer science"
+      ],
+      "keywords": [
+        "Transparency (behavior)",
+        "USable",
+        "Trustworthiness"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.17270",
+        "pdf": "https://arxiv.org/pdf/2604.17270"
+      },
+      "deconstruction": {
+        "problem": "推荐系统场景下的核心问题：Users increasingly rely on consumer-facing generative AI (GenAI) for tasks ranging from everyday needs to sensitive use cases.",
+        "method": "从题目“What Security and Privacy Transparency Users Need from Consumer-Facing Generative AI”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括Transparency (behavior)、USable、Trustworthiness。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证Transparency (behavior)是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "召回率、NDCG、MRR 等排序指标是否完整",
+          "负采样和时间切分是否避免泄漏",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "双塔召回/排序实验骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass TwoTower(nn.Module):\n    def __init__(self, user_dim: int, item_dim: int, hidden: int = 128):\n        super().__init__()\n        self.user_tower = nn.Sequential(nn.Linear(user_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n        self.item_tower = nn.Sequential(nn.Linear(item_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n\n    def forward(self, user_features, item_features):\n        user_vec = F.normalize(self.user_tower(user_features), dim=-1)\n        item_vec = F.normalize(self.item_tower(item_features), dim=-1)\n        return user_vec @ item_vec.T\n\ndef contrastive_loss(scores):\n    labels = torch.arange(scores.size(0), device=scores.device)\n    return F.cross_entropy(scores, labels)\n",
+        "note": "适合先复现召回阶段的语义匹配，再接业务负采样、hard negative 和 ANN 检索。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7155244639",
+      "title": "HORIZON: A Benchmark for In-the-wild User Behaviour Modeling",
+      "authors": [
+        "Arnav Goel",
+        "Pranjal A. Chitale",
+        "Bhawna Paliwal",
+        "Bishal Santra",
+        "Amit Sharma"
+      ],
+      "published": "2026-04-19",
+      "updated": "2026-04-23T06:20:18.424754",
+      "summary": "User behavior in the real world is diverse, cross-domain, and spans long time horizons. Existing user modeling benchmarks however remain narrow, focusing mainly on short sessions and next-item prediction within a single domain. Such limitations hinder progress toward robust and generalizable user models. We present HORIZON, a new benchmark that reformulates user modeling along three axes i.e. dataset, task, and evaluation. Built from a large-scale, cross-domain reformulation of Amazon Reviews, HORIZON covers 54M users and 35M items, enabling both pretraining and realistic evaluation of models in heterogeneous environments. Unlike prior benchmarks, it challenges models to generalize across domains, users, and time, moving beyond standard missing-positive prediction in the same domain. We propose new tasks and evaluation setups that better reflect real-world deployment scenarios. These include temporal generalization, sequence-length variation, and modeling unseen users, with metrics designed to assess general user behavior understanding rather than isolated next-item prediction. We benchmark popular sequential recommendation architectures alongside LLM-based baselines that leverage long-term interaction histories. Our results highlight the gap between current methods and the demands of real-world user modeling, while establishing HORIZON as a foundation for research on temporally robust, cross-domain, and general-purpose user models.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Benchmark (surveying)",
+        "Leverage (statistics)",
+        "Computer science",
+        "Software deployment",
+        "User modeling"
+      ],
+      "keywords": [
+        "RAG",
+        "序列建模",
+        "Benchmark (surveying)",
+        "Leverage (statistics)",
+        "Software deployment"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.17259",
+        "pdf": "https://arxiv.org/pdf/2604.17259"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：User behavior in the real world is diverse, cross-domain, and spans long time horizons.",
+        "method": "从题目“HORIZON: A Benchmark for In-the-wild User Behaviour Modeling”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括RAG、序列建模、Benchmark (surveying)、Leverage (statistics)、Software deployment。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证RAG是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7155247180",
+      "title": "Transparent and Controllable Recommendation Filtering via Multimodal Multi-Agent Collaboration",
+      "authors": [
+        "Chi Zhang",
+        "Zhipeng Xu",
+        "Jiahao Liu",
+        "Dongsheng Li",
+        "Hansu Gu",
+        "Peng Zhang",
+        "Ning Gu",
+        "Tun Lu"
+      ],
+      "published": "2026-04-19",
+      "updated": "2026-04-24T06:07:52.864757",
+      "summary": "While personalized recommender systems excel at content discovery, they frequently expose users to undesirable or discomforting information, highlighting the critical need for user-centric filtering tools. Current methods leveraging Large Language Models (LLMs) struggle with two major bottlenecks: they lack multimodal awareness to identify visually inappropriate content, and they are highly prone to \"over-association\" -- incorrectly generalizing a user's specific dislike (e.g., anxiety-inducing marketing) to block benign, educational materials. These unconstrained hallucinations lead to a high volume of false positives, ultimately undermining user agency. To overcome these challenges, we introduce a novel framework that integrates end-to-cloud collaboration, multimodal perception, and multi-agent orchestration. Our system employs a fact-grounded adjudication pipeline to eliminate inferential hallucinations. Furthermore, it constructs a dynamic, two-tier preference graph that allows for explicit, human-in-the-loop modifications (via Delta-adjustments), explicitly preventing the algorithm from catastrophically forgetting fine-grained user intents. Evaluated on an adversarial dataset comprising 473 highly confusing samples, the proposed architecture effectively curbed over-association, decreasing the false positive rate by 74.3% and achieving nearly twice the F1-Score of traditional text-only baselines. Additionally, a 7-day longitudinal field study with 19 participants demonstrated robust intent alignment and enhanced governance efficiency. User feedback confirmed that the framework drastically improves algorithmic transparency, rebuilds user control, and alleviates the fear of missing out (FOMO), paving the way for transparent human-AI co-governance in personalized feeds.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Computer science",
+        "Pipeline (software)",
+        "Recommender system",
+        "Collaborative filtering",
+        "Block (permutation group theory)"
+      ],
+      "keywords": [
+        "召回",
+        "智能体",
+        "RAG",
+        "对齐",
+        "多模态",
+        "图学习"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.17459",
+        "pdf": "https://arxiv.org/pdf/2604.17459"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：While personalized recommender systems excel at content discovery, they frequently expose users to undesirable or discomforting information, highlighting the critical need for user-centric filtering tools.",
+        "method": "从题目“Transparent and Controllable Recommendation Filtering via Multimodal Multi-Agent Collaboration”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括召回、智能体、RAG、对齐、多模态、图学习。",
+        "contributions": [
+          "围绕个性化建模，对推荐与广告定向有直接参考价值。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证召回是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "RAG/LLM 论文方法复现实验骨架",
+        "language": "python",
+        "code": "from typing import List\n\ndef retrieve(query: str, index, k: int = 5) -> List[str]:\n    hits = index.search(query, top_k=k)\n    return [doc.text for doc in hits]\n\ndef build_prompt(query: str, contexts: List[str]) -> str:\n    evidence = \"\\n\\n\".join(f\"[{i+1}] {ctx}\" for i, ctx in enumerate(contexts))\n    return f\"基于证据回答问题。\\n{evidence}\\n\\n问题：{query}\\n回答：\"\n\ndef evaluate(answer: str, reference: str) -> dict:\n    return {\n        \"contains_reference\": reference.lower() in answer.lower(),\n        \"length\": len(answer),\n    }\n",
+        "note": "用于把论文中的检索、提示词、评估指标拆成可替换组件。真实接入时替换 index 和模型调用即可。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7155245233",
+      "title": "On the Equivalence Between Auto-Regressive Next Token Prediction and Full-Item-Vocabulary Maximum Likelihood Estimation in Generative Recommendation--A Short Note",
+      "authors": [
+        "Yusheng Huang",
+        "Shuang Yang",
+        "Zhaojie Liu",
+        "Han Li"
+      ],
+      "published": "2026-04-17",
+      "updated": "2026-04-24T06:07:52.864757",
+      "summary": "Generative recommendation (GR) has emerged as a widely adopted paradigm in industrial sequential recommendation. Current GR systems follow a similar pipeline: tokenization for item indexing, next-token prediction as the training objective and auto-regressive decoding for next-item generation. However, existing GR research mainly focuses on architecture design and empirical performance optimization, with few rigorous theoretical explanations for the working mechanism of auto-regressive next-token prediction in recommendation scenarios. In this work, we formally prove that \\textbf{the k-token auto-regressive next-token prediction (AR-NTP) paradigm is strictly mathematically equivalent to full-item-vocabulary maximum likelihood estimation (FV-MLE)}, under the core premise of a bijective mapping between items and their corresponding k-token sequences. We further show that this equivalence holds for both cascaded and parallel tokenizations, the two most widely used schemes in industrial GR systems. Our result provides the first formal theoretical foundation for the dominant industrial GR paradigm, and offers principled guidance for future GR system optimization.",
+      "track": "recsys",
+      "trackLabel": "推荐系统",
+      "accent": "#2f7d67",
+      "categories": [
+        "Equivalence (formal languages)",
+        "Computer science",
+        "Security token",
+        "Premise",
+        "Bijection"
+      ],
+      "keywords": [
+        "序列建模",
+        "Equivalence (formal languages)",
+        "Security token",
+        "Premise"
+      ],
+      "links": {
+        "abstract": "https://arxiv.org/abs/2604.15739",
+        "pdf": "https://arxiv.org/pdf/2604.15739"
+      },
+      "deconstruction": {
+        "problem": "推荐系统场景下的核心问题：Generative recommendation (GR) has emerged as a widely adopted paradigm in industrial sequential recommendation.",
+        "method": "从题目“On the Equivalence Between Auto-Regressive Next Token Prediction and Full-Item-Vocabulary Maximum Likelihood Estimation in Generative Recommendation--A Short Note”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括序列建模、Equivalence (formal languages)、Security token、Premise。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证序列建模是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "召回率、NDCG、MRR 等排序指标是否完整",
+          "负采样和时间切分是否避免泄漏",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "双塔召回/排序实验骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\nclass TwoTower(nn.Module):\n    def __init__(self, user_dim: int, item_dim: int, hidden: int = 128):\n        super().__init__()\n        self.user_tower = nn.Sequential(nn.Linear(user_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n        self.item_tower = nn.Sequential(nn.Linear(item_dim, hidden), nn.ReLU(), nn.Linear(hidden, hidden))\n\n    def forward(self, user_features, item_features):\n        user_vec = F.normalize(self.user_tower(user_features), dim=-1)\n        item_vec = F.normalize(self.item_tower(item_features), dim=-1)\n        return user_vec @ item_vec.T\n\ndef contrastive_loss(scores):\n    labels = torch.arange(scores.size(0), device=scores.device)\n    return F.cross_entropy(scores, labels)\n",
+        "note": "适合先复现召回阶段的语义匹配，再接业务负采样、hard negative 和 ANN 检索。"
+      }
+    },
+    {
+      "id": "https://doi.org/10.1145/3774904.3792322",
+      "title": "AHBid: An Adaptable Hierarchical Bidding Framework for Cross-Channel Advertising",
+      "authors": [
+        "Xinxin Yang",
+        "Yangyang Tang",
+        "Yikun Zhou",
+        "Yaolei Liu",
+        "Yun Li",
+        "Bo Yang"
+      ],
+      "published": "2026-04-09",
+      "updated": "2026-04-11T06:13:24.991567",
+      "summary": "In online advertising, the inherent complexity and dynamic nature of advertising environments necessitate the use of auto-bidding services to assist advertisers in bid optimization. The complexity escalates in multi-channel scenarios, where effective allocation of budgets and constraints across channels with distinct behavioral patterns becomes critical for optimizing return on investment. Current approaches predominantly employ either optimization-based strategies or reinforcement learning (RL) techniques. However, optimization-based methods lack the flexibility to adapt to dynamic market conditions, while RL-based approaches struggle to capture essential historical dependencies and observational patterns within the constraints of Markov Decision Process (MDP) frameworks. To address these limitations, we propose AHBid, an Adaptable Hierarchical Bidding framework that integrates generative planning with real-time control. The framework employs a high-level generative planner utilizing diffusion models to dynamically allocate budgets and constraints through effective capture of historical context and temporal patterns. We introduce a constraint enforcement mechanism to ensure compliance with specified constraints, complemented by a trajectory refinement mechanism that enhances adaptability to environmental changes through historical data utilization. The system further incorporates a control-based bidding algorithm that synergistically combines historical knowledge with real-time information, significantly improving both adaptability and operational efficacy. Extensive experiments are conducted using both large-scale offline datasets and online A/B tests, demonstrating the effectiveness of AHBid by yielding a 13.57% increase in overall return compared to existing baselines.",
+      "track": "search-ads",
+      "trackLabel": "搜索广告",
+      "accent": "#c55a2e",
+      "categories": [
+        "Computer science",
+        "Bidding",
+        "Reinforcement learning",
+        "Markov decision process",
+        "Flexibility (engineering)"
+      ],
+      "keywords": [
+        "拍卖机制",
+        "RAG",
+        "Bidding",
+        "Reinforcement learning",
+        "Markov decision process"
+      ],
+      "links": {
+        "abstract": "https://doi.org/10.1145/3774904.3792322",
+        "pdf": "https://doi.org/10.1145/3774904.3792322"
+      },
+      "deconstruction": {
+        "problem": "搜索广告场景下的核心问题：In online advertising, the inherent complexity and dynamic nature of advertising environments necessitate the use of auto-bidding services to assist advertisers in bid optimization.",
+        "method": "从题目“AHBid: An Adaptable Hierarchical Bidding Framework for Cross-Channel Advertising”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括拍卖机制、RAG、Bidding、Reinforcement learning、Markov decision process。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证拍卖机制是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "CTR/CVR/AUC 与校准指标是否同时报告",
+          "拍卖约束、预算约束和长期价值是否被纳入",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "广告排序与拍卖校准骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass AdsRanker(nn.Module):\n    def __init__(self, feature_dim: int):\n        super().__init__()\n        self.backbone = nn.Sequential(\n            nn.Linear(feature_dim, 256), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(256, 128), nn.ReLU()\n        )\n        self.ctr = nn.Linear(128, 1)\n        self.cvr = nn.Linear(128, 1)\n\n    def forward(self, x):\n        h = self.backbone(x)\n        p_ctr = torch.sigmoid(self.ctr(h))\n        p_cvr = torch.sigmoid(self.cvr(h))\n        return p_ctr, p_cvr\n\ndef auction_score(p_ctr, p_cvr, bid, quality=1.0):\n    return bid * p_ctr * p_cvr * quality\n",
+        "note": "适合作为 CTR/CVR 多任务预估、广告质量分和出价融合的最小实现。论文如涉及拍卖或校准，可在 score 层替换为对应机制。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7153670442",
+      "title": "Ads in AI Chatbots? An Analysis of How Large Language Models Navigate Conflicts of Interest",
+      "authors": [
+        "Addison J. Wu",
+        "Ryan Wen Liu",
+        "Shuyue Stella Li",
+        "Yulia Tsvetkov",
+        "Thomas L. Griffiths"
+      ],
+      "published": "2026-04-09",
+      "updated": "2026-04-12T06:10:36.643156",
+      "summary": "Today's large language models (LLMs) are trained to align with user preferences through methods such as reinforcement learning. Yet models are beginning to be deployed not merely to satisfy users, but also to generate revenue for the companies that created them through advertisements. This creates the potential for LLMs to face conflicts of interest, where the most beneficial response to a user may not be aligned with the company's incentives. For instance, a sponsored product may be more expensive but otherwise equal to another; in this case, what does (and should) the LLM recommend to the user? In this paper, we provide a framework for categorizing the ways in which conflicting incentives might lead LLMs to change the way they interact with users, inspired by literature from linguistics and advertising regulation. We then present a suite of evaluations to examine how current models handle these tradeoffs. We find that a majority of LLMs forsake user welfare for company incentives in a multitude of conflict of interest situations, including recommending a sponsored product almost twice as expensive (Grok 4.1 Fast, 83%), surfacing sponsored options to disrupt the purchasing process (GPT 5.1, 94%), and concealing prices in unfavorable comparisons (Qwen 3 Next, 24%). Behaviors also vary strongly with levels of reasoning and users' inferred socio-economic status. Our results highlight some of the hidden risks to users that can emerge when companies begin to subtly incentivize advertisements in chatbots.",
+      "track": "search-ads",
+      "trackLabel": "搜索广告",
+      "accent": "#c55a2e",
+      "categories": [
+        "Purchasing",
+        "Incentive",
+        "Product (mathematics)",
+        "Revenue",
+        "Multitude"
+      ],
+      "keywords": [
+        "偏好建模",
+        "Purchasing",
+        "Incentive",
+        "Product (mathematics)"
+      ],
+      "links": {
+        "abstract": "http://arxiv.org/abs/2604.08525",
+        "pdf": "https://arxiv.org/pdf/2604.08525"
+      },
+      "deconstruction": {
+        "problem": "搜索广告场景下的核心问题：Today's large language models (LLMs) are trained to align with user preferences through methods such as reinforcement learning.",
+        "method": "从题目“Ads in AI Chatbots? An Analysis of How Large Language Models Navigate Conflicts of Interest”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括偏好建模、Purchasing、Incentive、Product (mathematics)。",
+        "contributions": [
+          "引入推理或解释能力，适合拆成可观测的中间决策链路。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证偏好建模是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "CTR/CVR/AUC 与校准指标是否同时报告",
+          "拍卖约束、预算约束和长期价值是否被纳入",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "广告排序与拍卖校准骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass AdsRanker(nn.Module):\n    def __init__(self, feature_dim: int):\n        super().__init__()\n        self.backbone = nn.Sequential(\n            nn.Linear(feature_dim, 256), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(256, 128), nn.ReLU()\n        )\n        self.ctr = nn.Linear(128, 1)\n        self.cvr = nn.Linear(128, 1)\n\n    def forward(self, x):\n        h = self.backbone(x)\n        p_ctr = torch.sigmoid(self.ctr(h))\n        p_cvr = torch.sigmoid(self.cvr(h))\n        return p_ctr, p_cvr\n\ndef auction_score(p_ctr, p_cvr, bid, quality=1.0):\n    return bid * p_ctr * p_cvr * quality\n",
+        "note": "适合作为 CTR/CVR 多任务预估、广告质量分和出价融合的最小实现。论文如涉及拍卖或校准，可在 score 层替换为对应机制。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7153670801",
+      "title": "Incentive-Aware Multi-Fidelity Optimization for Generative Advertising in Large Language Models",
+      "authors": [
+        "Jiayuan Liu",
+        "Barry Wang",
+        "Jiarui Gan",
+        "Tonghan Wang",
+        "Leon Xie",
+        "Mingyu Guo",
+        "Vincent Conitzer"
+      ],
+      "published": "2026-04-07",
+      "updated": "2026-04-12T06:10:36.643156",
+      "summary": "Generative advertising in large language model (LLM) responses requires optimizing sponsorship configurations under two strict constraints: the strategic behavior of advertisers and the high cost of stochastic generations. To address this, we propose the Incentive-Aware Multi-Fidelity Mechanism (IAMFM), a unified framework coupling Vickrey-Clarke-Groves (VCG) incentives with Multi-Fidelity Optimization to maximize expected social welfare. We compare two algorithmic instantiations (elimination-based and model-based), revealing their budget-dependent performance trade-offs. Crucially, to make VCG computationally feasible, we introduce Active Counterfactual Optimization, a \"warm-start\" approach that reuses optimization data for efficient payment calculation. We provide formal guarantees for approximate strategy-proofness and individual rationality, establishing a general approach for incentive-aligned, budget-constrained generative processes. Experiments demonstrate that IAMFM outperforms single-fidelity baselines across diverse budgets.",
+      "track": "search-ads",
+      "trackLabel": "搜索广告",
+      "accent": "#c55a2e",
+      "categories": [
+        "Computer science",
+        "Generative grammar",
+        "Counterfactual thinking",
+        "Generative model",
+        "Payment"
+      ],
+      "keywords": [
+        "Generative grammar",
+        "Counterfactual thinking",
+        "Generative model"
+      ],
+      "links": {
+        "abstract": "http://arxiv.org/abs/2604.06263",
+        "pdf": "https://arxiv.org/pdf/2604.06263"
+      },
+      "deconstruction": {
+        "problem": "搜索广告场景下的核心问题：Generative advertising in large language model (LLM) responses requires optimizing sponsorship configurations under two strict constraints: the strategic behavior of advertisers and the high cost of stochastic generation...",
+        "method": "从题目“Incentive-Aware Multi-Fidelity Optimization for Generative Advertising in Large Language Models”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括Generative grammar、Counterfactual thinking、Generative model。",
+        "contributions": [
+          "强调效率或延迟优化，可关注线上推理成本。",
+          "关注对齐与偏好学习，可迁移到用户反馈闭环。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证Generative grammar是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "CTR/CVR/AUC 与校准指标是否同时报告",
+          "拍卖约束、预算约束和长期价值是否被纳入",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "广告排序与拍卖校准骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass AdsRanker(nn.Module):\n    def __init__(self, feature_dim: int):\n        super().__init__()\n        self.backbone = nn.Sequential(\n            nn.Linear(feature_dim, 256), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(256, 128), nn.ReLU()\n        )\n        self.ctr = nn.Linear(128, 1)\n        self.cvr = nn.Linear(128, 1)\n\n    def forward(self, x):\n        h = self.backbone(x)\n        p_ctr = torch.sigmoid(self.ctr(h))\n        p_cvr = torch.sigmoid(self.cvr(h))\n        return p_ctr, p_cvr\n\ndef auction_score(p_ctr, p_cvr, bid, quality=1.0):\n    return bid * p_ctr * p_cvr * quality\n",
+        "note": "适合作为 CTR/CVR 多任务预估、广告质量分和出价融合的最小实现。论文如涉及拍卖或校准，可在 score 层替换为对应机制。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7152933835",
+      "title": "Regimes of Scale in AI Meteorology",
+      "authors": [
+        "Anya Martin",
+        "Cindy Lin"
+      ],
+      "published": "2026-04-07",
+      "updated": "2026-04-11T06:19:08.300824",
+      "summary": "HCI work has explored the effective integration of AI/ML tools across \"application domains\" from healthcare to finance to transportation. We add to this literature with an analysis of AI/ML tools in meteorology, a domain that already uses \"big data\" and massive physics-based models. Drawing from 12 interviews with forecasters and meteorologists with varied connections to AI/ML weather modeling, we trace tensions in AI/ML weather application arising from what we call \"regimes of scale,\" different ways that AI/ML and meteorological regimes make observations, data, and models scale. Rather than seeing AI/ML as a domain-agnostic tool, we argue that AI/ML methods were born from specific platform and internet infrastructures, and so they can struggle to integrate with very different (in this case meteorological) ways of organizing data pipelines.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Scale (ratio)",
+        "Domain (mathematical analysis)",
+        "Meteorology",
+        "Computer science",
+        "Work (physics)"
+      ],
+      "keywords": [
+        "Scale (ratio)",
+        "Domain (mathematical analysis)",
+        "Work (physics)"
+      ],
+      "links": {
+        "abstract": "http://arxiv.org/abs/2604.06000",
+        "pdf": "https://arxiv.org/pdf/2604.06000"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：HCI work has explored the effective integration of AI/ML tools across \"application domains\" from healthcare to finance to transportation.",
+        "method": "从题目“Regimes of Scale in AI Meteorology”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括Scale (ratio)、Domain (mathematical analysis)、Work (physics)。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证Scale (ratio)是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "LLM 增强推荐特征融合骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass LLMRecFusion(nn.Module):\n    def __init__(self, id_dim: int, text_dim: int):\n        super().__init__()\n        self.id_tower = nn.Sequential(nn.Linear(id_dim, 128), nn.ReLU())\n        self.text_tower = nn.Sequential(nn.Linear(text_dim, 128), nn.ReLU())\n        self.gate = nn.Sequential(nn.Linear(256, 1), nn.Sigmoid())\n        self.head = nn.Linear(128, 1)\n\n    def forward(self, id_features, llm_text_embedding):\n        id_vec = self.id_tower(id_features)\n        text_vec = self.text_tower(llm_text_embedding)\n        gate = self.gate(torch.cat([id_vec, text_vec], dim=-1))\n        fused = gate * text_vec + (1 - gate) * id_vec\n        return torch.sigmoid(self.head(fused))\n",
+        "note": "用于验证 LLM 文本表示是否真的带来增益，而不是替代成熟的 ID 特征链路。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7152331601",
+      "title": "Commercial Persuasion in AI-Mediated Conversations",
+      "authors": [
+        "Francesco Salvi",
+        "Alejandro Cuevas",
+        "Manoel Horta Ribeiro"
+      ],
+      "published": "2026-04-05",
+      "updated": "2026-04-10T06:07:51.998497",
+      "summary": "As Large Language Models (LLMs) become a primary interface between users and the web, companies face growing economic incentives to embed commercial influence into AI-mediated conversations. We present two preregistered experiments (N = 2,012) in which participants selected a book to receive from a large eBook catalog using either a traditional search engine or a conversational LLM agent powered by one of five frontier models. Unbeknownst to participants, a fifth of all products were randomly designated as sponsored and promoted in different ways. We find that LLM-driven persuasion nearly triples the rate at which users select sponsored products compared to traditional search placement (61.2% vs. 22.4%), while the vast majority of participants fail to detect any promotional steering. Explicit \"Sponsored\" labels do not significantly reduce persuasion, and instructing the model to conceal its intent makes its influence nearly invisible (detection accuracy < 10%). Altogether, our results indicate that conversational AI can covertly redirect consumer choices at scale, and that existing transparency mechanisms may be insufficient to protect users.",
+      "track": "search-ads",
+      "trackLabel": "搜索广告",
+      "accent": "#c55a2e",
+      "categories": [
+        "Persuasion",
+        "Incentive",
+        "Transparency (behavior)",
+        "Advertising",
+        "Internet privacy"
+      ],
+      "keywords": [
+        "智能体",
+        "Persuasion",
+        "Incentive",
+        "Transparency (behavior)"
+      ],
+      "links": {
+        "abstract": "http://arxiv.org/abs/2604.04263",
+        "pdf": "https://arxiv.org/pdf/2604.04263"
+      },
+      "deconstruction": {
+        "problem": "搜索广告场景下的核心问题：As Large Language Models (LLMs) become a primary interface between users and the web, companies face growing economic incentives to embed commercial influence into AI-mediated conversations.",
+        "method": "从题目“Commercial Persuasion in AI-Mediated Conversations”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、Persuasion、Incentive、Transparency (behavior)。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "CTR/CVR/AUC 与校准指标是否同时报告",
+          "拍卖约束、预算约束和长期价值是否被纳入",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "广告排序与拍卖校准骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass AdsRanker(nn.Module):\n    def __init__(self, feature_dim: int):\n        super().__init__()\n        self.backbone = nn.Sequential(\n            nn.Linear(feature_dim, 256), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(256, 128), nn.ReLU()\n        )\n        self.ctr = nn.Linear(128, 1)\n        self.cvr = nn.Linear(128, 1)\n\n    def forward(self, x):\n        h = self.backbone(x)\n        p_ctr = torch.sigmoid(self.ctr(h))\n        p_cvr = torch.sigmoid(self.cvr(h))\n        return p_ctr, p_cvr\n\ndef auction_score(p_ctr, p_cvr, bid, quality=1.0):\n    return bid * p_ctr * p_cvr * quality\n",
+        "note": "适合作为 CTR/CVR 多任务预估、广告质量分和出价融合的最小实现。论文如涉及拍卖或校准，可在 score 层替换为对应机制。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7152330697",
+      "title": "Mixture-of-Experts in Remote Sensing: A Survey",
+      "authors": [
+        "Yongchuan Cui",
+        "Peng Liu",
+        "Lajiao Chen"
+      ],
+      "published": "2026-04-03",
+      "updated": "2026-04-21T08:09:41.155169",
+      "summary": "Remote sensing data analysis and interpretation present unique challenges due to the diversity in sensor modalities and spatiotemporal dynamics of Earth observation data. Mixture-of-Experts (MoE) model has emerged as a powerful paradigm that addresses these challenges by dynamically routing inputs to specialized experts designed for different aspects of a task. However, despite rapid progress, the community still lacks a comprehensive review of MoE for remote sensing. This survey provides the first systematic overview of MoE applications in remote sensing, covering fundamental principles, architectural designs, and key applications across a variety of remote sensing tasks. The survey also outlines future trends to inspire further research and innovation in applying MoE to remote sensing.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Remote sensing",
+        "Variety (cybernetics)",
+        "Key (lock)",
+        "Data science",
+        "Computer science"
+      ],
+      "keywords": [
+        "图学习",
+        "Variety (cybernetics)",
+        "Key (lock)",
+        "Remote sensing application"
+      ],
+      "links": {
+        "abstract": "http://arxiv.org/abs/2604.03342",
+        "pdf": "https://arxiv.org/pdf/2604.03342"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：Remote sensing data analysis and interpretation present unique challenges due to the diversity in sensor modalities and spatiotemporal dynamics of Earth observation data.",
+        "method": "从题目“Mixture-of-Experts in Remote Sensing: A Survey”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括图学习、Variety (cybernetics)、Key (lock)、Remote sensing application。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证图学习是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "LLM 增强推荐特征融合骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass LLMRecFusion(nn.Module):\n    def __init__(self, id_dim: int, text_dim: int):\n        super().__init__()\n        self.id_tower = nn.Sequential(nn.Linear(id_dim, 128), nn.ReLU())\n        self.text_tower = nn.Sequential(nn.Linear(text_dim, 128), nn.ReLU())\n        self.gate = nn.Sequential(nn.Linear(256, 1), nn.Sigmoid())\n        self.head = nn.Linear(128, 1)\n\n    def forward(self, id_features, llm_text_embedding):\n        id_vec = self.id_tower(id_features)\n        text_vec = self.text_tower(llm_text_embedding)\n        gate = self.gate(torch.cat([id_vec, text_vec], dim=-1))\n        fused = gate * text_vec + (1 - gate) * id_vec\n        return torch.sigmoid(self.head(fused))\n",
+        "note": "用于验证 LLM 文本表示是否真的带来增益，而不是替代成熟的 ID 特征链路。"
+      }
+    },
+    {
+      "id": "https://openalex.org/W7148176229",
+      "title": "Self++: Co-Determined Agency for Human--AI Symbiosis in Extended Reality",
+      "authors": [
+        "Thammathip Piumsomboon"
+      ],
+      "published": "2026-03-30",
+      "updated": "2026-04-03T16:44:17.987007",
+      "summary": "Self++ is a design blueprint for human-AI symbiosis in extended reality (XR) that preserves human authorship while still benefiting from increasingly capable AI agents. Because XR can shape both perceptual evidence and action, apparently 'helpful' assistance can drift into over-reliance, covert persuasion, and blurred responsibility. Self++ grounds interaction in two complementary theories: Self-Determination Theory (autonomy, competence, relatedness) and the Free Energy Principle (predictive stability under uncertainty). It operationalises these foundations through co-determination, treating the human and the AI as a coupled system that must keep intent and limits legible, tune support over time, and preserve the user's right to endorse, contest, and override. These requirements are summarised as the co-determination principles (T.A.N.): Transparency, Adaptivity, and Negotiability. Self++ organises augmentation into three concurrently activatable overlays spanning sensorimotor competence support (Self: competence overlay), deliberative autonomy support (Self+: autonomy overlay), and social and long-horizon relatedness and purpose support (Self++: relatedness and purpose overlay). Across the overlays, it specifies nine role patterns (Tutor, Skill Builder, Coach; Choice Architect, Advisor, Agentic Worker; Contextual Interpreter, Social Facilitator, Purpose Amplifier) that can be implemented as interaction patterns, not personas. The contribution is a role-based map for designing and evaluating XR-AI systems that grow capability without replacing judgment, enabling symbiotic agency in work, learning, and social life and resilient human development.",
+      "track": "llm-recsys",
+      "trackLabel": "LLM x 推荐广告",
+      "accent": "#9b6b2f",
+      "categories": [
+        "Autonomy",
+        "Competence (human resources)",
+        "Blueprint",
+        "Agency (philosophy)",
+        "Knowledge management"
+      ],
+      "keywords": [
+        "智能体",
+        "Autonomy",
+        "Competence (human resources)",
+        "Blueprint"
+      ],
+      "links": {
+        "abstract": "http://arxiv.org/abs/2603.28306",
+        "pdf": "https://arxiv.org/pdf/2603.28306"
+      },
+      "deconstruction": {
+        "problem": "LLM x 推荐广告场景下的核心问题：Self++ is a design blueprint for human-AI symbiosis in extended reality (XR) that preserves human authorship while still benefiting from increasingly capable AI agents.",
+        "method": "从题目“Self++: Co-Determined Agency for Human--AI Symbiosis in Extended Reality”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括智能体、Autonomy、Competence (human resources)、Blueprint。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证智能体是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "LLM 是否真正参与排序/生成决策，而不只是文本特征增强",
+          "是否比较传统 ID-based 模型和文本语义模型",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "LLM 增强推荐特征融合骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass LLMRecFusion(nn.Module):\n    def __init__(self, id_dim: int, text_dim: int):\n        super().__init__()\n        self.id_tower = nn.Sequential(nn.Linear(id_dim, 128), nn.ReLU())\n        self.text_tower = nn.Sequential(nn.Linear(text_dim, 128), nn.ReLU())\n        self.gate = nn.Sequential(nn.Linear(256, 1), nn.Sigmoid())\n        self.head = nn.Linear(128, 1)\n\n    def forward(self, id_features, llm_text_embedding):\n        id_vec = self.id_tower(id_features)\n        text_vec = self.text_tower(llm_text_embedding)\n        gate = self.gate(torch.cat([id_vec, text_vec], dim=-1))\n        fused = gate * text_vec + (1 - gate) * id_vec\n        return torch.sigmoid(self.head(fused))\n",
+        "note": "用于验证 LLM 文本表示是否真的带来增益，而不是替代成熟的 ID 特征链路。"
+      }
+    },
+    {
+      "id": "https://doi.org/10.5267/j.ijdns.2025.9.020",
+      "title": "Machine learning applications in digital advertising performance optimization: A systematic literature review",
+      "authors": [
+        "Jesus Alfredo Apaza-Caceres",
+        "Liz Alessandra Vilca Paja",
+        "Andre Pillihuaman Huachaca",
+        "Diego Alonso Pedraza Choqu"
+      ],
+      "published": "2025-11-06",
+      "updated": "2026-05-06T08:25:59.206177",
+      "summary": "The explosion of growth in digital advertising, reaching $798.7 billion by 2025 with 72% of companies adopting artificial intelligence, warrants a systematic understanding of how machine learning is transforming this sector. The objective was to systematically analyze the application of machine learning in web advertising campaigns through a comprehensive review of scientific literature (2010-2025). The PRISMA methodology was implemented with five-dimensional quality criteria (0-3 points), selecting 42 excellent articles (13-15 points). The results reveal a dominance of deep learning (66.6%), with Deep Neural Networks (35.7%) and attention models (19.0%) predominating; convergence toward CTR as a universal metric (95.2%); concentration in e-commerce (61.9%), led by Alibaba (14.3%); and data sparsity as a fundamental limitation (59.5%). Significant algorithmic consolidation is found, but critical gaps in fairness (0%), sustainability (0%), and robustness (0%). Implications include the need for methodological diversification, the development of equity-aware frameworks, and expansion into sectors regulated by privacy-preserving techniques.",
+      "track": "search-ads",
+      "trackLabel": "搜索广告",
+      "accent": "#c55a2e",
+      "categories": [
+        "Machine learning",
+        "Artificial intelligence",
+        "Systematic review",
+        "Computer science",
+        "Digital advertising"
+      ],
+      "keywords": [
+        "CTR 预估",
+        "Systematic review",
+        "Digital advertising",
+        "Robustness (evolution)"
+      ],
+      "links": {
+        "abstract": "https://doi.org/10.5267/j.ijdns.2025.9.020",
+        "pdf": "https://doi.org/10.5267/j.ijdns.2025.9.020"
+      },
+      "deconstruction": {
+        "problem": "搜索广告场景下的核心问题：The explosion of growth in digital advertising, reaching $798.7 billion by 2025 with 72% of companies adopting artificial intelligence, warrants a systematic understanding of how machine learning is transforming this sec...",
+        "method": "从题目“Machine learning applications in digital advertising performance optimization: A systematic literature review”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括CTR 预估、Systematic review、Digital advertising、Robustness (evolution)。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证CTR 预估是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "CTR/CVR/AUC 与校准指标是否同时报告",
+          "拍卖约束、预算约束和长期价值是否被纳入",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "广告排序与拍卖校准骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass AdsRanker(nn.Module):\n    def __init__(self, feature_dim: int):\n        super().__init__()\n        self.backbone = nn.Sequential(\n            nn.Linear(feature_dim, 256), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(256, 128), nn.ReLU()\n        )\n        self.ctr = nn.Linear(128, 1)\n        self.cvr = nn.Linear(128, 1)\n\n    def forward(self, x):\n        h = self.backbone(x)\n        p_ctr = torch.sigmoid(self.ctr(h))\n        p_cvr = torch.sigmoid(self.cvr(h))\n        return p_ctr, p_cvr\n\ndef auction_score(p_ctr, p_cvr, bid, quality=1.0):\n    return bid * p_ctr * p_cvr * quality\n",
+        "note": "适合作为 CTR/CVR 多任务预估、广告质量分和出价融合的最小实现。论文如涉及拍卖或校准，可在 score 层替换为对应机制。"
+      }
+    },
+    {
+      "id": "https://doi.org/10.1016/j.ipm.2025.104450",
+      "title": "Conversion rate prediction in online advertising: modeling techniques, performance evaluation and future directions",
+      "authors": [
+        "Tao Xue",
+        "Yanwu Yang",
+        "Panyu Zhai"
+      ],
+      "published": "2025-10-31",
+      "updated": "2026-01-20T17:24:06.736184",
+      "summary": "OpenAlex 当前没有返回这篇论文的摘要。建议从论文原文抽取方法、数据集、训练目标和实验指标；本条目先基于标题与主题进行工程化初筛。",
+      "track": "search-ads",
+      "trackLabel": "搜索广告",
+      "accent": "#c55a2e",
+      "categories": [
+        "Computer science",
+        "Predictive modelling",
+        "Data science",
+        "Machine learning",
+        "Performance prediction"
+      ],
+      "keywords": [
+        "CVR 预估",
+        "Predictive modelling",
+        "Performance prediction",
+        "Data modeling"
+      ],
+      "links": {
+        "abstract": "https://doi.org/10.1016/j.ipm.2025.104450",
+        "pdf": "https://arxiv.org/pdf/2512.01171"
+      },
+      "deconstruction": {
+        "problem": "搜索广告场景下的核心问题：OpenAlex 当前没有返回这篇论文的摘要。建议从论文原文抽取方法、数据集、训练目标和实验指标；本条目先基于标题与主题进行工程化初筛。",
+        "method": "从题目“Conversion rate prediction in online advertising: modeling techniques, performance evaluation and future directions”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括CVR 预估、Predictive modelling、Performance prediction、Data modeling。",
+        "contributions": [
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证CVR 预估是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "CTR/CVR/AUC 与校准指标是否同时报告",
+          "拍卖约束、预算约束和长期价值是否被纳入",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "广告排序与拍卖校准骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass AdsRanker(nn.Module):\n    def __init__(self, feature_dim: int):\n        super().__init__()\n        self.backbone = nn.Sequential(\n            nn.Linear(feature_dim, 256), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(256, 128), nn.ReLU()\n        )\n        self.ctr = nn.Linear(128, 1)\n        self.cvr = nn.Linear(128, 1)\n\n    def forward(self, x):\n        h = self.backbone(x)\n        p_ctr = torch.sigmoid(self.ctr(h))\n        p_cvr = torch.sigmoid(self.cvr(h))\n        return p_ctr, p_cvr\n\ndef auction_score(p_ctr, p_cvr, bid, quality=1.0):\n    return bid * p_ctr * p_cvr * quality\n",
+        "note": "适合作为 CTR/CVR 多任务预估、广告质量分和出价融合的最小实现。论文如涉及拍卖或校准，可在 score 层替换为对应机制。"
+      }
+    },
+    {
+      "id": "https://doi.org/10.48550/arxiv.2510.19357",
+      "title": "Autobidding Arena: unified evaluation of the classical and RL-based autobidding algorithms",
+      "authors": [
+        "Andrey Pudovikov",
+        "Khirianova, Alexandra",
+        "Ekaterina Solodneva",
+        "Alexandr Katrutsa",
+        "Egor Samosvat",
+        "Yuriy Dorn"
+      ],
+      "published": "2025-10-22",
+      "updated": "2026-04-21T08:09:41.155169",
+      "summary": "Advertisement auctions play a crucial role in revenue generation for e-commerce companies. To make the bidding procedure scalable to thousands of auctions, the automatic bidding (autobidding) algorithms are actively developed in the industry. Therefore, the fair and reproducible evaluation of autobidding algorithms is an important problem. We present a standardized and transparent evaluation protocol for comparing classical and reinforcement learning (RL) autobidding algorithms. We consider the most efficient autobidding algorithms from different classes, e.g., ones based on the controllers, RL, optimal formulas, etc., and benchmark them in the bidding environment. We utilize the most recent open-source environment developed in the industry, which accurately emulates the bidding process. Our work demonstrates the most promising use cases for the considered autobidding algorithms, highlights their surprising drawbacks, and evaluates them according to multiple metrics. We select the evaluation metrics that illustrate the performance of the autobidding algorithms, the corresponding costs, and track the budget pacing. Such a choice of metrics makes our results applicable to the broad range of platforms where autobidding is effective. The presented comparison results help practitioners to evaluate the candidate autobidding algorithms from different perspectives and select ones that are efficient according to their companies' targets.",
+      "track": "search-ads",
+      "trackLabel": "搜索广告",
+      "accent": "#c55a2e",
+      "categories": [
+        "Bidding",
+        "Computer science",
+        "Benchmark (surveying)",
+        "Scalability",
+        "Common value auction"
+      ],
+      "keywords": [
+        "拍卖机制",
+        "Bidding",
+        "Benchmark (surveying)",
+        "Scalability"
+      ],
+      "links": {
+        "abstract": "http://arxiv.org/abs/2510.19357",
+        "pdf": "https://arxiv.org/pdf/2510.19357"
+      },
+      "deconstruction": {
+        "problem": "搜索广告场景下的核心问题：Advertisement auctions play a crucial role in revenue generation for e-commerce companies.",
+        "method": "从题目“Autobidding Arena: unified evaluation of the classical and RL-based autobidding algorithms”和摘要看，方法大概率围绕任务建模、数据/反馈信号组织、训练目标设计与线上可部署性展开。重点信号包括拍卖机制、Bidding、Benchmark (surveying)、Scalability。",
+        "contributions": [
+          "提供新的评测集或基准，适合纳入内部离线评估面板。",
+          "强调效率或延迟优化，可关注线上推理成本。",
+          "建议阅读全文时抽取数据来源、负采样方式、损失函数和线上/离线指标口径。",
+          "优先验证拍卖机制是否能在现有召回、粗排、精排或生成式交互链路中复用。"
+        ],
+        "experimentChecklist": [
+          "CTR/CVR/AUC 与校准指标是否同时报告",
+          "拍卖约束、预算约束和长期价值是否被纳入",
+          "数据集是否接近真实业务分布",
+          "是否报告消融实验",
+          "是否包含效率、延迟或成本指标"
+        ],
+        "engineeringUse": "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。"
+      },
+      "codeBlueprint": {
+        "title": "广告排序与拍卖校准骨架",
+        "language": "python",
+        "code": "import torch\nimport torch.nn as nn\n\nclass AdsRanker(nn.Module):\n    def __init__(self, feature_dim: int):\n        super().__init__()\n        self.backbone = nn.Sequential(\n            nn.Linear(feature_dim, 256), nn.ReLU(), nn.Dropout(0.1),\n            nn.Linear(256, 128), nn.ReLU()\n        )\n        self.ctr = nn.Linear(128, 1)\n        self.cvr = nn.Linear(128, 1)\n\n    def forward(self, x):\n        h = self.backbone(x)\n        p_ctr = torch.sigmoid(self.ctr(h))\n        p_cvr = torch.sigmoid(self.cvr(h))\n        return p_ctr, p_cvr\n\ndef auction_score(p_ctr, p_cvr, bid, quality=1.0):\n    return bid * p_ctr * p_cvr * quality\n",
+        "note": "适合作为 CTR/CVR 多任务预估、广告质量分和出价融合的最小实现。论文如涉及拍卖或校准，可在 score 层替换为对应机制。"
+      }
+    }
+  ]
+}
