@@ -105,7 +105,7 @@ function App() {
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/papers.json`, { cache: "no-store" })
+    fetch(`${import.meta.env.BASE_URL}data/papers.json?v=${Date.now()}`, { cache: "no-store" })
       .then((response) => {
         if (!response.ok) throw new Error("论文数据尚未生成，请先运行 npm run fetch:papers");
         return response.json();
