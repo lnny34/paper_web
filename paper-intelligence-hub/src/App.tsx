@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
   BookOpenText,
+  CalendarDays,
   CalendarClock,
   Code2,
   Copy,
@@ -12,6 +13,7 @@ import {
   Search,
   Sparkles,
   Target,
+  X,
   Zap,
 } from "lucide-react";
 
@@ -19,9 +21,7 @@ type Track = {
   id: string;
   label: string;
   accent: string;
-  query?: string;
   openAlexQueries?: string[];
-  lookbackDays?: number;
 };
 
 type Paper = {
@@ -30,18 +30,19 @@ type Paper = {
   authors: string[];
   published: string;
   updated: string;
+  year?: string;
+  month?: string;
   summary: string;
   track: string;
   trackLabel: string;
   accent: string;
   categories: string[];
   keywords: string[];
+  source?: string;
   links: {
     abstract: string;
     pdf: string;
   };
-  source?: string;
-  relevanceScore?: number;
   deconstruction: {
     problem: string;
     method: string;
@@ -57,50 +58,89 @@ type Paper = {
   };
 };
 
+type TimelineYear = {
+  year: string;
+  count: number;
+  byTrack: Record<string, number>;
+};
+
+type TimelineMonth = {
+  month: string;
+  year: string;
+  count: number;
+  byTrack: Record<string, number>;
+};
+
 type PaperData = {
   generatedAt: string;
   source: string;
-  focus: string[];
+  dateRange?: {
+    from: string;
+    to: string;
+  };
   tracks: Track[];
+  timeline?: {
+    years: TimelineYear[];
+    months: TimelineMonth[];
+  };
   stats: {
     total: number;
     rawFetched?: number;
     uniqueTotal?: number;
-    perTrackQuota?: number;
+    outputLimit?: number;
+    perTrackLimit?: number;
     byTrack: { id: string; label: string; count: number }[];
+    bySource?: { source: string; count: number }[];
     errors: { track: string; source?: string; query?: string; message: string }[];
   };
   papers: Paper[];
 };
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
   month: "2-digit",
   day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
 });
 
-const dayFormatter = new Intl.DateTimeFormat("zh-CN", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-function formatDate(value: string) {
+function formatDate(value?: string) {
   if (!value) return "-";
   return dateFormatter.format(new Date(value));
 }
 
-function shortDate(value: string) {
+function formatTime(value?: string) {
   if (!value) return "-";
-  return dayFormatter.format(new Date(value));
+  return timeFormatter.format(new Date(value));
+}
+
+function getYear(value: string) {
+  return String(new Date(value).getFullYear());
+}
+
+function getMonth(value: string) {
+  const date = new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(value: string) {
+  const [, month] = value.split("-");
+  return `${Number(month)}月`;
 }
 
 function App() {
   const [data, setData] = useState<PaperData | null>(null);
   const [activeTrack, setActiveTrack] = useState("all");
+  const [activeYear, setActiveYear] = useState("all");
+  const [activeMonth, setActiveMonth] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [displayLimit, setDisplayLimit] = useState(240);
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
 
@@ -117,38 +157,72 @@ function App() {
       .catch((error: Error) => setLoadError(error.message));
   }, []);
 
+  useEffect(() => {
+    setDisplayLimit(240);
+  }, [activeTrack, activeYear, activeMonth, query]);
+
   const filteredPapers = useMemo(() => {
     if (!data) return [];
     const needle = query.trim().toLowerCase();
+
     return data.papers.filter((paper) => {
+      const year = paper.year || getYear(paper.published);
+      const month = paper.month || getMonth(paper.published);
       const inTrack = activeTrack === "all" || paper.track === activeTrack;
+      const inYear = activeYear === "all" || year === activeYear;
+      const inMonth = activeMonth === "all" || month === activeMonth;
       const inText =
         !needle ||
-        [paper.title, paper.summary, paper.trackLabel, paper.authors.join(" "), paper.keywords.join(" ")]
+        [paper.title, paper.summary, paper.trackLabel, paper.authors.join(" "), paper.keywords.join(" "), paper.source || ""]
           .join(" ")
           .toLowerCase()
           .includes(needle);
-      return inTrack && inText;
+
+      return inTrack && inYear && inMonth && inText;
     });
-  }, [activeTrack, data, query]);
+  }, [activeMonth, activeTrack, activeYear, data, query]);
+
+  useEffect(() => {
+    if (filteredPapers.length === 0) return;
+    if (!filteredPapers.some((paper) => paper.id === selectedId)) {
+      setSelectedId(filteredPapers[0].id);
+    }
+  }, [filteredPapers, selectedId]);
 
   const selectedPaper = useMemo(() => {
     if (!data) return null;
     return filteredPapers.find((paper) => paper.id === selectedId) ?? filteredPapers[0] ?? data.papers[0] ?? null;
   }, [data, filteredPapers, selectedId]);
 
+  const visiblePapers = filteredPapers.slice(0, displayLimit);
+
   const topKeywords = useMemo(() => {
     if (!data) return [];
     const counts = new Map<string, number>();
-    data.papers.forEach((paper) => paper.keywords.forEach((keyword) => counts.set(keyword, (counts.get(keyword) || 0) + 1)));
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [data]);
+    filteredPapers.forEach((paper) => paper.keywords.forEach((keyword) => counts.set(keyword, (counts.get(keyword) || 0) + 1)));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  }, [data, filteredPapers]);
+
+  const monthsForActiveYear = useMemo(() => {
+    if (!data?.timeline) return [];
+    return data.timeline.months.filter((item) => activeYear === "all" || item.year === activeYear);
+  }, [activeYear, data]);
+
+  const activeTrackMeta = data?.tracks.find((track) => track.id === activeTrack);
+  const dateRange = data?.dateRange ? `${data.dateRange.from} 至 ${data.dateRange.to}` : "2023 至今";
 
   async function copyCode() {
     if (!selectedPaper) return;
     await navigator.clipboard.writeText(selectedPaper.codeBlueprint.code);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
+  }
+
+  function clearFilters() {
+    setActiveTrack("all");
+    setActiveYear("all");
+    setActiveMonth("all");
+    setQuery("");
   }
 
   if (loadError) {
@@ -171,125 +245,197 @@ function App() {
     );
   }
 
-  const activeTrackMeta = data.tracks.find((track) => track.id === activeTrack);
-  const newestDate = data.papers[0]?.published;
-
   return (
-    <main className="shell">
-      <section className="hero">
-        <div className="hero-copy">
-          <div className="eyebrow">
-            <Sparkles size={16} />
-            推荐 · 搜索广告 · 大模型
+    <main className="app-shell">
+      <header className="app-header">
+        <div className="brand-row">
+          <div className="brand-mark">
+            <BookOpenText size={24} />
           </div>
-          <h1>Paper Intelligence Hub</h1>
-          <p>
-            今日覆盖 {data.stats.total} 篇论文，来自 {data.stats.uniqueTotal ?? data.stats.total} 篇去重候选，重点追踪推荐、搜索广告、LLM 和交叉方向。
-          </p>
-          <div className="hero-actions">
-            <a className="primary-link" href={selectedPaper?.links.pdf || selectedPaper?.links.abstract} target="_blank" rel="noreferrer">
-              打开最新论文
-              <ArrowUpRight size={17} />
-            </a>
-            <div className="timestamp">
-              <CalendarClock size={17} />
-              更新 {formatDate(data.generatedAt)}
-            </div>
-            {newestDate && <div className="timestamp">最新 {shortDate(newestDate)}</div>}
+          <div>
+            <p>Paper Intelligence Hub</p>
+            <h1>推荐、搜索广告与大模型论文时间线</h1>
           </div>
         </div>
-
-        <div className="radar" aria-label="paper radar">
-          <div className="radar-grid" />
-          <div className="pulse p1" />
-          <div className="pulse p2" />
-          <div className="radar-core">
-            <strong>{data.stats.total}</strong>
-            <span>papers</span>
-          </div>
-          {data.stats.byTrack.map((item, index) => (
-            <div
-              className={`radar-node n${index + 1}`}
-              key={item.id}
-              style={{ "--node-size": `${Math.min(116, Math.max(54, Math.sqrt(item.count) * 14))}px` } as React.CSSProperties}
-            >
-              <span>{item.label}</span>
-              <b>{item.count}</b>
-            </div>
-          ))}
+        <div className="header-meta">
+          <span>
+            <CalendarClock size={16} />
+            {formatTime(data.generatedAt)}
+          </span>
+          <span>{dateRange}</span>
         </div>
-      </section>
+      </header>
 
-      <section className="metric-row">
+      <section className="stat-strip">
+        <div className="stat-cell primary">
+          <span>论文库</span>
+          <strong>{data.stats.total}</strong>
+          <em>已入库论文</em>
+        </div>
+        <div className="stat-cell">
+          <span>候选</span>
+          <strong>{data.stats.rawFetched ?? data.stats.total}</strong>
+          <em>跨主题抓取</em>
+        </div>
+        <div className="stat-cell">
+          <span>去重</span>
+          <strong>{data.stats.uniqueTotal ?? data.stats.total}</strong>
+          <em>标题/DOI 合并</em>
+        </div>
+        <div className="stat-cell">
+          <span>时间</span>
+          <strong>{data.timeline?.years.length ?? 0}</strong>
+          <em>年份覆盖</em>
+        </div>
         {data.stats.byTrack.map((item) => (
           <button
-            className={`metric ${activeTrack === item.id ? "active" : ""}`}
+            className={`stat-cell track-stat ${activeTrack === item.id ? "active" : ""}`}
             key={item.id}
             onClick={() => setActiveTrack(item.id)}
             type="button"
           >
             <span>{item.label}</span>
             <strong>{item.count}</strong>
+            <em>方向论文</em>
           </button>
         ))}
-        <button className={`metric ${activeTrack === "all" ? "active" : ""}`} onClick={() => setActiveTrack("all")} type="button">
-          <span>全部</span>
-          <strong>{data.stats.total}</strong>
+      </section>
+
+      <section className="control-bar">
+        <div className="searchbox">
+          <Search size={18} />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索标题、作者、关键词、来源" />
+        </div>
+        <div className="active-context">
+          <Target size={16} />
+          {activeTrackMeta?.label || "全方向"}
+          {activeYear !== "all" ? ` · ${activeYear}` : ""}
+          {activeMonth !== "all" ? ` · ${monthLabel(activeMonth)}` : ""}
+        </div>
+        <button className="ghost-button" onClick={clearFilters} type="button">
+          <X size={16} />
+          重置
         </button>
       </section>
 
-      <section className="toolbar">
-        <div className="searchbox">
-          <Search size={18} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索标题、作者、关键词" />
-        </div>
-        <div className="context-pill">
-          <Target size={16} />
-          {activeTrackMeta ? activeTrackMeta.label : "全主题"}
-        </div>
-      </section>
-
-      <section className="workspace">
-        <aside className="paper-list">
-          <div className="section-title">
-            <span>
-              <Layers3 size={18} />
-              最新论文
-            </span>
-            <b>{filteredPapers.length}</b>
+      <section className="main-grid">
+        <aside className="timeline-panel">
+          <div className="panel-title">
+            <CalendarDays size={18} />
+            时间线
           </div>
-          {filteredPapers.length === 0 && <div className="empty-list">没有匹配的论文</div>}
-          {filteredPapers.map((paper) => (
-            <button
-              className={`paper-card ${selectedPaper?.id === paper.id ? "selected" : ""}`}
-              key={paper.id}
-              onClick={() => setSelectedId(paper.id)}
-              style={{ "--accent": paper.accent } as React.CSSProperties}
-              type="button"
-            >
-              <span className="track-label">{paper.trackLabel}</span>
-              <h2>{paper.title}</h2>
-              <p>{paper.authors.slice(0, 4).join(", ") || "Unknown authors"}</p>
-              <div className="card-meta">
-                <span>{shortDate(paper.published)}</span>
-                <span>{paper.source || paper.categories.slice(0, 1).join(" · ")}</span>
-              </div>
-            </button>
-          ))}
+          <button
+            className={`timeline-all ${activeYear === "all" && activeMonth === "all" ? "active" : ""}`}
+            onClick={() => {
+              setActiveYear("all");
+              setActiveMonth("all");
+            }}
+            type="button"
+          >
+            <span>全部年份</span>
+            <b>{data.stats.total}</b>
+          </button>
+          <div className="year-list">
+            {data.timeline?.years.map((item) => (
+              <button
+                className={`year-row ${activeYear === item.year ? "active" : ""}`}
+                key={item.year}
+                onClick={() => {
+                  setActiveYear(item.year);
+                  setActiveMonth("all");
+                }}
+                type="button"
+              >
+                <span>{item.year}</span>
+                <i style={{ width: `${Math.max(8, (item.count / data.stats.total) * 100)}%` }} />
+                <b>{item.count}</b>
+              </button>
+            ))}
+          </div>
+          <div className="month-list">
+            {monthsForActiveYear.slice(0, activeYear === "all" ? 18 : 12).map((item) => (
+              <button
+                className={`month-row ${activeMonth === item.month ? "active" : ""}`}
+                key={item.month}
+                onClick={() => {
+                  setActiveYear(item.year);
+                  setActiveMonth(item.month);
+                }}
+                type="button"
+              >
+                <span>{item.year === activeYear ? monthLabel(item.month) : item.month}</span>
+                <b>{item.count}</b>
+              </button>
+            ))}
+          </div>
+          <div className="keyword-box">
+            <div className="panel-title compact">
+              <Sparkles size={16} />
+              当前热点
+            </div>
+            {topKeywords.map(([keyword, count]) => (
+              <span key={keyword}>
+                {keyword}
+                <b>{count}</b>
+              </span>
+            ))}
+          </div>
         </aside>
 
+        <section className="paper-board">
+          <div className="board-head">
+            <div>
+              <p>论文矩阵</p>
+              <h2>{filteredPapers.length} 篇匹配论文</h2>
+            </div>
+            <div className="board-count">
+              显示 {visiblePapers.length} / {filteredPapers.length}
+            </div>
+          </div>
+
+          {visiblePapers.length === 0 ? (
+            <div className="empty-list">没有匹配的论文</div>
+          ) : (
+            <div className="paper-grid">
+              {visiblePapers.map((paper) => (
+                <button
+                  className={`paper-card ${selectedPaper?.id === paper.id ? "selected" : ""}`}
+                  key={paper.id}
+                  onClick={() => setSelectedId(paper.id)}
+                  style={{ "--accent": paper.accent } as React.CSSProperties}
+                  type="button"
+                >
+                  <div className="paper-card-top">
+                    <span>{paper.trackLabel}</span>
+                    <b>{formatDate(paper.published)}</b>
+                  </div>
+                  <h3>{paper.title}</h3>
+                  <p>{paper.summary}</p>
+                  <div className="paper-foot">
+                    <span>{paper.source || "OpenAlex"}</span>
+                    <span>{paper.authors.slice(0, 2).join(", ") || "Unknown"}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {filteredPapers.length > displayLimit && (
+            <button className="load-more" onClick={() => setDisplayLimit((value) => value + 240)} type="button">
+              加载更多
+            </button>
+          )}
+        </section>
+
         {selectedPaper && (
-          <article className="detail" style={{ "--accent": selectedPaper.accent } as React.CSSProperties}>
+          <aside className="detail-panel" style={{ "--accent": selectedPaper.accent } as React.CSSProperties}>
             <div className="detail-head">
-              <div>
-                <span className="track-label">{selectedPaper.trackLabel}</span>
-                <h2>{selectedPaper.title}</h2>
-                <p>{selectedPaper.authors.slice(0, 8).join(", ") || "Unknown authors"}</p>
-                <div className="detail-meta">
-                  <span>{shortDate(selectedPaper.published)}</span>
-                  <span>{selectedPaper.source || data.source}</span>
-                  <span>{selectedPaper.categories.slice(0, 3).join(" · ") || "Research paper"}</span>
-                </div>
+              <span className="track-label">{selectedPaper.trackLabel}</span>
+              <h2>{selectedPaper.title}</h2>
+              <p>{selectedPaper.authors.slice(0, 8).join(", ") || "Unknown authors"}</p>
+              <div className="detail-meta">
+                <span>{formatDate(selectedPaper.published)}</span>
+                <span>{selectedPaper.source || data.source}</span>
               </div>
               <div className="link-row">
                 <a href={selectedPaper.links.abstract} target="_blank" rel="noreferrer">
@@ -309,27 +455,26 @@ function App() {
               ))}
             </div>
 
-            <div className="insight-grid">
-              <section className="insight">
-                <h3>
-                  <Target size={17} />
-                  问题
-                </h3>
-                <p>{selectedPaper.deconstruction.problem}</p>
-              </section>
-              <section className="insight">
-                <h3>
-                  <GitBranch size={17} />
-                  方法
-                </h3>
-                <p>{selectedPaper.deconstruction.method}</p>
-              </section>
-            </div>
-
-            <section className="full-band">
+            <section className="detail-section">
               <h3>
-                <Zap size={17} />
-                关键贡献
+                <Target size={16} />
+                问题
+              </h3>
+              <p>{selectedPaper.deconstruction.problem}</p>
+            </section>
+
+            <section className="detail-section">
+              <h3>
+                <GitBranch size={16} />
+                方法
+              </h3>
+              <p>{selectedPaper.deconstruction.method}</p>
+            </section>
+
+            <section className="detail-section">
+              <h3>
+                <Zap size={16} />
+                贡献
               </h3>
               <ul>
                 {selectedPaper.deconstruction.contributions.map((item) => (
@@ -338,12 +483,12 @@ function App() {
               </ul>
             </section>
 
-            <section className="full-band">
+            <section className="detail-section">
               <h3>
-                <FlaskConical size={17} />
+                <FlaskConical size={16} />
                 实验检查
               </h3>
-              <div className="check-grid">
+              <div className="check-list">
                 {selectedPaper.deconstruction.experimentChecklist.map((item) => (
                   <span key={item}>{item}</span>
                 ))}
@@ -352,46 +497,29 @@ function App() {
 
             <section className="code-panel">
               <div className="code-head">
-                <div>
-                  <h3>
-                    <Code2 size={17} />
-                    {selectedPaper.codeBlueprint.title}
-                  </h3>
-                  <p>{selectedPaper.codeBlueprint.note}</p>
-                </div>
+                <h3>
+                  <Code2 size={16} />
+                  {selectedPaper.codeBlueprint.title}
+                </h3>
                 <button onClick={copyCode} type="button">
-                  <Copy size={16} />
+                  <Copy size={15} />
                   {copied ? "已复制" : "复制"}
                 </button>
               </div>
+              <p>{selectedPaper.codeBlueprint.note}</p>
               <pre>
                 <code>{selectedPaper.codeBlueprint.code}</code>
               </pre>
             </section>
-          </article>
+          </aside>
         )}
-
-        <aside className="trend-panel">
-          <div className="section-title">
-            <Sparkles size={18} />
-            关键词热度
-          </div>
-          {topKeywords.map(([keyword, count]) => (
-            <div className="trend" key={keyword}>
-              <span>{keyword}</span>
-              <div>
-                <i style={{ width: `${Math.max(12, count * 18)}px` }} />
-              </div>
-              <b>{count}</b>
-            </div>
-          ))}
-          {data.stats.errors.length > 0 && (
-            <div className="warning">
-              部分查询失败：{data.stats.errors.slice(0, 4).map((error) => `${error.track}/${error.source || "source"}`).join("、")}
-            </div>
-          )}
-        </aside>
       </section>
+
+      {data.stats.errors.length > 0 && (
+        <div className="warning">
+          部分查询失败：{data.stats.errors.slice(0, 5).map((error) => `${error.track}/${error.source || "source"}`).join("、")}
+        </div>
+      )}
     </main>
   );
 }

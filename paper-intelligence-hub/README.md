@@ -1,6 +1,6 @@
 # Paper Intelligence Hub
 
-自动论文库，面向推荐系统、搜索广告、大模型和 LLM x 推荐广告方向。
+自动论文库，面向推荐系统、搜索广告、大模型和 LLM x 推荐广告方向。默认拉取 `2023-01-01` 至今的数据，并生成时间线视图。
 
 ## 快速开始
 
@@ -24,6 +24,18 @@ npm run dev:all
 
 ```bash
 PAPER_DAILY_CRON="30 9 * * *" PAPER_TIMEZONE="Asia/Shanghai" npm run dev:all
+```
+
+全量采集参数：
+
+```bash
+PAPER_START_DATE="2023-01-01" PAPER_TOTAL_LIMIT=3600 npm run fetch:papers
+```
+
+如果只想做更快的日常刷新，可以降低每个查询的翻页深度：
+
+```bash
+PAPER_MAX_ARXIV_PAGES_PER_QUERY=1 PAPER_MAX_ALL_PAGES_PER_QUERY=1 npm run fetch:papers
 ```
 
 如果部署到 GitHub，可以用 `gh-pages` 分支发布静态网页；也可以在 GitHub 上手动添加 Actions workflow 实现每日自动构建。
