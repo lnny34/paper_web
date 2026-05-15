@@ -1,47 +1,47 @@
 # Paper Intelligence Weekly
 
-生成时间：2026-05-15T10:18:04.379Z
+生成时间：2026-05-15T13:26:52.304Z
 覆盖范围：2023-01-01 至 2026-05-15
-论文总数：3714
+论文总数：11909
 
 ## 最近 30 篇
-1. **Music Streaming as a Mediated Process: Algorithms and Assets** (推荐系统, 2026-05-15) - https://doi.org/10.1017/rma.2026.10068
-2. **Review-Grounded Explainable Recommendation with Faithfulness Evaluation on Amazon Reviews** (推荐系统, 2026-05-14) - https://doi.org/10.54732/jeecs.v11i1.2
-3. **An ML-driven decision support system for engineering college selection post-intermediate education in India** (推荐系统, 2026-05-14) - https://doi.org/10.1007/s44282-026-00351-4
-4. **EFFECTIVENESS OF USING ARTIFICIAL INTELLIGENCE TECHNOLOGIES IN ELECTRONIC COMMERCE** (推荐系统, 2026-05-14) - https://doi.org/10.5281/zenodo.20183601
-5. **Graph Neural Networks: Mathematical Foundations and Algorithmic Frameworks** (推荐系统, 2026-05-14) - https://doi.org/10.5281/zenodo.20151051
-6. **A Comprehensive Review on Multilingual News Recommender Systems and their Challenges** (推荐系统, 2026-05-14) - https://doi.org/10.55041/ijcope.v2i5.429
-7. **EduPath AI: An Intelligent Career Roadmap and Personalized Learning Guidance System** (推荐系统, 2026-05-14) - https://doi.org/10.5281/zenodo.20175589
-8. **Developing a Framework and Wireframe for AI-Driven Personalization and Recommendation Systems in Library Management: A Design Thinking Approach** (推荐系统, 2026-05-14) - https://doi.org/10.1080/19322909.2026.2666035
-9. **Secure Recommendation Network of Educational Resources in Colleges and Universities Based on Boundary Value Improved Random Forest Algorithm** (推荐系统, 2026-05-14) - https://doi.org/10.1177/24056456261449423
-10. **Gita-Prerna: An AI-Based Emotion-Aware Guidance System Using Facial Emotion Recognition and NLP-Driven Shloka Recommendation** (推荐系统, 2026-05-14) - https://doi.org/10.22214/ijraset.2026.82163
-11. **Gestational diabetes prediction and diet recommendation using lattice homomorphism-based deep neural network** (推荐系统, 2026-05-14) - https://doi.org/10.1016/j.bspc.2026.110398
-12. **YAATRA SAATHI: An AI-Driven Email-Integrated Smart Tourism System with Personalized Itinerary and Eco-Travel Recommendations** (LLM x 推荐广告, 2026-05-14) - https://doi.org/10.5281/zenodo.20175753
-13. **Generative Models for Context-Aware Recommender Systems: A Survey** (推荐系统, 2026-05-13) - https://doi.org/10.1145/3816031
-14. **Interpretable prediction of social media user follow behavior based on gradient boosting decision trees and feature contribution analysis** (推荐系统, 2026-05-13) - https://doi.org/10.1117/12.3108920
-15. **Bridging the Invisible Gap: AI-Driven Journalism in Shaping Digital Inclusion for ‘Orang Asli’ or Indigenous Elders** (推荐系统, 2026-05-13) - https://doi.org/10.34190/ecsm.13.1.4745
-16. **Context-Aware and Adaptive Multi-Scale Interest Modeling for Sequential Recommendation** (推荐系统, 2026-05-13) - https://doi.org/10.20381/ruor-31950
-17. **Development of a Federated Learning and Knowledge Graph-Based Personalized E-Commerce Recommendation System Using PTB-MFA** (推荐系统, 2026-05-13) - https://doi.org/10.31449/inf.v50i12.13491
-18. **Al in Marketing: Personalization and Recommendation Systems** (推荐系统, 2026-05-13) - https://doi.org/10.5281/zenodo.20162063
-19. **Research on semantic association and intelligent recommendation model of library and information resources based on knowledge graph** (推荐系统, 2026-05-13) - https://doi.org/10.1117/12.3108894
-20. **A Practitioner’s Runbook for Building Scalable Recommendation Systems in Large-Scale E-Commerce Platforms** (推荐系统, 2026-05-13) - https://doi.org/10.22399/ijcesen.5231
-21. **DIGITALIZATION OF REGIONAL CHILDREN'S LIBRARIES THROUGH ARTIFICIAL INTELLIGENCE TECHNOLOGIES** (推荐系统, 2026-05-13) - https://doi.org/10.5281/zenodo.20152686
-22. **“AI-Powered Influencer Marketing Strategies and Their Impact on Brand Positioning on Social Media Platforms”** (推荐系统, 2026-05-13) - https://doi.org/10.55041/ijcope.v2i5.404
-23. **ROLE OF ARTIFICIAL INTELLIGENCE IN DIGITAL MARKETING IN AMAZON** (推荐系统, 2026-05-13) - https://doi.org/10.82471/93qrd-0ed93
-24. **CONVEX OPTIMIZATION, L1 &amp; L2 REGULARIZATION, SGD, AND MINI-BATCH GRADIENT DESCENT** (推荐系统, 2026-05-13) - https://doi.org/10.34218/jaiml_05_01_002
-25. **Smart Survey System Using Machine Learning for Income Bracket Prediction and Personalized Recommendation** (推荐系统, 2026-05-13) - https://doi.org/10.22214/ijraset.2026.81910
-26. **Academic Recommendation Framework with Temporal Dynamic Pattern Analysis Using FSPN-ADGAT for Indian Higher Education Institutions** (推荐系统, 2026-05-13) - https://doi.org/10.5815/ijmecs.2026.03.03
-27. **AyurDiet OS: An Intelligent Hybrid Ayurvedic Nutritional Diet Planning and Recommendation System** (推荐系统, 2026-05-13) - https://doi.org/10.22214/ijraset.2026.81953
-28. **Ethical and Privacy-Preserving Framework for AI-Based Personalized Learning Systems** (推荐系统, 2026-05-13) - https://doi.org/10.71443/er.ar22
-29. **SensAI: An Intelligent Career Guidance and Resume Analysis System** (推荐系统, 2026-05-13) - https://doi.org/10.22214/ijraset.2026.81927
-30. **A comprehensive survey on privacy-preserving recommender system in pervasive environments** (推荐系统, 2026-05-13) - https://doi.org/10.1007/s42486-026-00235-1
+1. **AI-IoT-Robotics Integration: Survey of Frameworks, Emerging Trends, and the Path Toward Connected Robotics** (大模型, 2026-05-15) - https://www.semanticscholar.org/paper/fd4882448a29292645d6f41f29164f15a52cbcf4
+2. **A Comprehensive Survey on Large Language Model Compression for Artificial Intelligence Applications in Edge Systems** (大模型, 2026-05-15) - https://www.semanticscholar.org/paper/d0b4e42fd00cff582a77f12485a33d48e851fd98
+3. **Multimodal Large Language Models for Perception in Autonomous Driving: Architecture, Taxonomy, and Challenges** (大模型, 2026-05-15) - https://www.semanticscholar.org/paper/5bd317548d254c411b70ae4afa4351bff66b4294
+4. **Logging Policy Design for Off-Policy Evaluation** (推荐系统, 2026-05-14) - http://arxiv.org/abs/2605.15108v1
+5. **Agentic Recommender System with Hierarchical Belief-State Memory** (推荐系统, 2026-05-14) - http://arxiv.org/abs/2605.14401v1
+6. **Focused PU learning from imbalanced data** (推荐系统, 2026-05-14) - http://arxiv.org/abs/2605.14467v1
+7. **Review-Grounded Explainable Recommendation with Faithfulness Evaluation on Amazon Reviews** (推荐系统, 2026-05-14) - https://doi.org/10.54732/jeecs.v11i1.2
+8. **YAATRA SAATHI: An AI-Driven Email-Integrated Smart Tourism System with Personalized Itinerary and Eco-Travel Recommendations** (LLM x 推荐广告, 2026-05-14) - https://doi.org/10.5281/zenodo.20175753
+9. **Task-Aware Automated User Profile Generation for Recommendation Simulation Using Large Language Models** (推荐系统, 2026-05-13) - http://arxiv.org/abs/2605.13497v1
+10. **F-GRPO: Factorized Group-Relative Policy Optimization for Unified Candidate Generation and Ranking** (大模型, 2026-05-13) - http://arxiv.org/abs/2605.12995v1
+11. **Improving Reproducibility in Evaluation through Multi-Level Annotator Modeling** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13801
+12. **Tracing Persona Vectors Through LLM Pretraining** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13329
+13. **Identifying AI Web Scrapers Using Canary Tokens** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13706
+14. **RS-Claw: Progressive Active Tool Exploration via Hierarchical Skill Trees for Remote Sensing Agents** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13391
+15. **RealICU: Do LLM Agents Understand Long-Context ICU Data? A Benchmark Beyond Behavior Imitation** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13542
+16. **Probing Persona-Dependent Preferences in Language Models** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13339
+17. **Learning to See What You Need: Gaze Attention for Multimodal Large Language Models** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13080
+18. **Senses Wide Shut: A Representation-Action Gap in Omnimodal LLMs** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13737
+19. **Assessing the Creativity of Large Language Models: Testing, Limits, and New Frontiers** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13450
+20. **Inducing Artificial Uncertainty in Language Models** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13595
+21. **The Expressivity Boundary of Probabilistic Circuits: A Comparison with Large Language Models** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.12940
+22. **EconAI: Dynamic Persona Evolution and Memory-Aware Agents in Evolving Economic Environments** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13762
+23. **Large Language Models for AI-Assisted Radiotherapy Scheduling: A Feasibility Study Under Realistic Operational Constraints** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.12896
+24. **The Readability Spectrum: Patterns, Issues, and Prompt Effects in LLM-Generated Code** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13280
+25. **RAG-Enhanced Large Language Models for Dynamic Content Expiration Prediction in Web Search** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13052
+26. **When Do LLMs Generate Realistic Social Networks? A Multi-Dimensional Study of Culture, Language, Scale, and Method** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.12898
+27. **Query-Conditioned Test-Time Self-Training for Large Language Models** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13369
+28. **TokAlign++: Advancing Vocabulary Adaptation via Better Token Alignment** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13429
+29. **Reinforced Collaboration in Multi-Agent Flow Networks** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.12943
+30. **OpenAaaS: An Open Agent-as-a-Service Framework for Distributed Materials-Informatics Research** (大模型, 2026-05-13) - https://doi.org/10.48550/arxiv.2605.13618
 
 ## 上升主题
-- RAG/智能体: 最近 6 个月 1650 篇，较前 6 个月 +1624
-- 召回排序: 最近 6 个月 788 篇，较前 6 个月 +746
-- 对齐/偏好优化: 最近 6 个月 357 篇，较前 6 个月 +343
-- 多模态大模型: 最近 6 个月 315 篇，较前 6 个月 +309
-- 高效训练/推理: 最近 6 个月 197 篇，较前 6 个月 +191
-- 广告生成与投放: 最近 6 个月 203 篇，较前 6 个月 +175
-- CTR/CVR 预估: 最近 6 个月 144 篇，较前 6 个月 +140
-- 图推荐: 最近 6 个月 111 篇，较前 6 个月 +103
+- RAG/智能体: 最近 6 个月 1914 篇，较前 6 个月 +1595
+- 召回排序: 最近 6 个月 1156 篇，较前 6 个月 +747
+- 多模态大模型: 最近 6 个月 537 篇，较前 6 个月 +317
+- 对齐/偏好优化: 最近 6 个月 605 篇，较前 6 个月 +250
+- LLM 推荐: 最近 6 个月 514 篇，较前 6 个月 +227
+- 图推荐: 最近 6 个月 324 篇，较前 6 个月 +134
+- 高效训练/推理: 最近 6 个月 576 篇，较前 6 个月 +107
+- CTR/CVR 预估: 最近 6 个月 245 篇，较前 6 个月 +62

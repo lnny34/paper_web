@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { XMLParser } from "fast-xml-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -10,19 +11,35 @@ const exportsDir = path.join(dataDir, "exports");
 
 const OPENALEX_ENDPOINT = "https://api.openalex.org/works";
 const OPENALEX_ARXIV_SOURCE = "S4306400194";
+const ARXIV_ENDPOINT = "https://export.arxiv.org/api/query";
+const SEMANTIC_SCHOLAR_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search/bulk";
 const DEFAULT_START_DATE = "2023-01-01";
 const MODE = process.env.PAPER_MODE || "full";
 const INCREMENTAL_DAYS = Number(process.env.PAPER_INCREMENTAL_DAYS || 7);
+const FETCH_SOURCES = new Set((process.env.PAPER_FETCH_SOURCES || "openalex,arxiv,s2").split(",").map((item) => item.trim()));
 let START_DATE = process.env.PAPER_START_DATE || DEFAULT_START_DATE;
 const END_DATE = process.env.PAPER_END_DATE || new Date().toISOString().slice(0, 10);
 const PAGE_SIZE = Number(process.env.PAPER_PAGE_SIZE || 200);
+const ARXIV_PAGE_SIZE = Number(process.env.PAPER_ARXIV_PAGE_SIZE || 200);
+const S2_PAGE_SIZE = Number(process.env.PAPER_S2_PAGE_SIZE || 100);
 const MAX_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_ARXIV_PAGES_PER_QUERY || 5);
 const MAX_ALL_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_ALL_PAGES_PER_QUERY || 2);
 const HISTORICAL_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_HISTORICAL_ARXIV_PAGES_PER_QUERY || 2);
 const HISTORICAL_ALL_PAGES_PER_QUERY = Number(process.env.PAPER_HISTORICAL_ALL_PAGES_PER_QUERY || 1);
-const TOTAL_LIMIT = Number(process.env.PAPER_TOTAL_LIMIT || 6000);
+const MAX_DIRECT_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_DIRECT_ARXIV_PAGES_PER_QUERY || 2);
+const HISTORICAL_DIRECT_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_HISTORICAL_DIRECT_ARXIV_PAGES_PER_QUERY || 1);
+const MAX_S2_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_S2_PAGES_PER_QUERY || 1);
+const TOTAL_LIMIT = Number(process.env.PAPER_TOTAL_LIMIT || 12000);
 const PER_TRACK_LIMIT = Number(process.env.PAPER_PER_TRACK_LIMIT || TOTAL_LIMIT);
 const REQUEST_DELAY_MS = Number(process.env.PAPER_REQUEST_DELAY_MS || 90);
+const ARXIV_REQUEST_DELAY_MS = Number(process.env.PAPER_ARXIV_REQUEST_DELAY_MS || 1100);
+const S2_REQUEST_DELAY_MS = Number(process.env.PAPER_S2_REQUEST_DELAY_MS || 1200);
+
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "",
+  textNodeName: "text",
+});
 
 const tracks = [
   {
@@ -43,6 +60,33 @@ const tracks = [
       "news recommendation",
       "e-commerce recommendation",
       "generative recommendation",
+      "retrieval augmented recommendation",
+      "fairness recommender system",
+      "debiasing recommender system",
+      "multi-behavior recommendation",
+      "cold-start recommendation",
+      "knowledge graph recommendation",
+      "cross-domain recommendation",
+      "review recommendation",
+      "recommendation benchmark",
+    ],
+    arxivQueries: [
+      "recommender system",
+      "recommendation system",
+      "sequential recommendation",
+      "session-based recommendation",
+      "collaborative filtering",
+      "learning to rank",
+      "candidate generation",
+      "graph recommendation",
+      "knowledge graph recommendation",
+      "e-commerce recommendation",
+      "news recommendation",
+      "cold-start recommendation",
+      "cross-domain recommendation",
+      "multi-behavior recommendation",
+      "fairness recommendation",
+      "debiasing recommendation",
     ],
   },
   {
@@ -63,6 +107,29 @@ const tracks = [
       "budget pacing advertising",
       "ad delivery fairness",
       "generative advertising",
+      "advertising recommendation",
+      "advertiser bidding",
+      "auction mechanism advertising",
+      "ad click prediction",
+      "ad conversion prediction",
+      "ads recommendation",
+    ],
+    arxivQueries: [
+      "sponsored search",
+      "computational advertising",
+      "online advertising",
+      "ad auction",
+      "advertising auction",
+      "ad ranking",
+      "click-through rate prediction",
+      "conversion rate prediction",
+      "real-time bidding",
+      "auto bidding",
+      "budget pacing",
+      "advertiser bidding",
+      "ad delivery",
+      "advertising recommendation",
+      "generative advertising",
     ],
   },
   {
@@ -82,6 +149,29 @@ const tracks = [
       "multimodal large language model",
       "large language model agent",
       "efficient inference large language model",
+      "tool learning large language model",
+      "reasoning large language model",
+      "mixture of experts language model",
+      "parameter efficient tuning language model",
+      "language model evaluation benchmark",
+      "synthetic data large language model",
+    ],
+    arxivQueries: [
+      "large language model",
+      "foundation model",
+      "instruction tuning",
+      "preference optimization",
+      "reinforcement learning from human feedback",
+      "retrieval augmented generation",
+      "long context language model",
+      "multimodal large language model",
+      "language model agent",
+      "efficient inference language model",
+      "mixture of experts language model",
+      "parameter efficient tuning",
+      "tool learning",
+      "reasoning language model",
+      "language model evaluation",
     ],
   },
   {
@@ -99,6 +189,25 @@ const tracks = [
       "LLM advertising",
       "large language model sponsored search",
       "LLM user modeling recommendation",
+      "LLM ranking recommendation",
+      "agent recommendation system",
+      "recommendation with large language models",
+      "large language model user modeling",
+      "large language model ad ranking",
+    ],
+    arxivQueries: [
+      "large language model recommender",
+      "LLM recommender",
+      "language model recommendation",
+      "recommendation with large language models",
+      "generative recommendation",
+      "LLM user modeling",
+      "large language model user modeling",
+      "LLM ranking",
+      "agent recommendation",
+      "LLM advertising",
+      "large language model advertising",
+      "large language model sponsored search",
     ],
   },
 ];
@@ -207,6 +316,9 @@ const trackSignals = {
   recsys: [
     "recommender system",
     "recommender systems",
+    "recommender",
+    "recommenders",
+    "recommendation",
     "recommendation system",
     "recommendation systems",
     "recommendation model",
@@ -219,6 +331,11 @@ const trackSignals = {
     "candidate generation",
     "next-basket",
     "learning to rank",
+    "cross-domain recommendation",
+    "cold-start recommendation",
+    "knowledge graph recommendation",
+    "multi-behavior recommendation",
+    "review recommendation",
   ],
   "search-ads": [
     "sponsored search",
@@ -235,11 +352,19 @@ const trackSignals = {
     "ctr prediction",
     "cvr prediction",
     "real time bidding",
+    "real-time bidding",
+    "rtb",
     "auto-bidding",
     "autobidding",
+    "auto bidding",
+    "bid optimization",
+    "advertiser bidding",
     "budget pacing",
     "paid advertising",
     "personalized advertising",
+    "ad click prediction",
+    "ad conversion prediction",
+    "ads recommendation",
   ],
   llm: [
     "large language model",
@@ -257,6 +382,13 @@ const trackSignals = {
     "multimodal large language model",
     "long context",
     "language model agent",
+    "tool learning",
+    "tool use",
+    "reasoning language model",
+    "mixture of experts",
+    "parameter efficient tuning",
+    "synthetic data",
+    "language model evaluation",
   ],
   "llm-recsys": [
     "large language model recommendation",
@@ -268,6 +400,11 @@ const trackSignals = {
     "large language model advertising",
     "llm e-commerce recommendation",
     "large language model sponsored search",
+    "llm ranking",
+    "agent recommendation",
+    "recommendation with large language models",
+    "large language model user modeling",
+    "large language model ad ranking",
   ],
 };
 
@@ -405,6 +542,34 @@ function maxPagesForWindow(sourceScope, fetchWindow) {
   if (fetchWindow.current) return base;
   const historical = sourceScope === "arxiv" ? HISTORICAL_ARXIV_PAGES_PER_QUERY : HISTORICAL_ALL_PAGES_PER_QUERY;
   return Math.min(base, historical);
+}
+
+function maxDirectArxivPagesForWindow(fetchWindow) {
+  return fetchWindow.current ? MAX_DIRECT_ARXIV_PAGES_PER_QUERY : HISTORICAL_DIRECT_ARXIV_PAGES_PER_QUERY;
+}
+
+function arxivTimestamp(value, endOfDay = false) {
+  const compact = value.replaceAll("-", "");
+  return `${compact}${endOfDay ? "2359" : "0000"}`;
+}
+
+function arxivCategories(trackId) {
+  const common = ["cat:cs.IR", "cat:cs.LG", "cat:cs.CL", "cat:cs.AI", "cat:stat.ML"];
+  if (trackId === "search-ads") {
+    return [...common, "cat:cs.GT", "cat:econ.TH"];
+  }
+  if (trackId === "recsys" || trackId === "llm-recsys") {
+    return [...common, "cat:cs.SI", "cat:cs.HC"];
+  }
+  return common;
+}
+
+function arxivSearchQuery(trackId, query, fetchWindow) {
+  const phrase = query.replace(/"/g, " ").replace(/\s+/g, " ").trim();
+  const termClause = `(ti:"${phrase}" OR abs:"${phrase}" OR all:"${phrase}")`;
+  const categoryClause = `(${arxivCategories(trackId).join(" OR ")})`;
+  const dateClause = `submittedDate:[${arxivTimestamp(fetchWindow.from)} TO ${arxivTimestamp(fetchWindow.to, true)}]`;
+  return `${termClause} AND ${categoryClause} AND ${dateClause}`;
 }
 
 function signalList(text, signals) {
@@ -789,6 +954,171 @@ function enrichOpenAlexWork(work, requestedTrack) {
   };
 }
 
+function firstText(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) return firstText(value[0]);
+  return value.text || value["#text"] || "";
+}
+
+function arxivIdFromUrl(value) {
+  const raw = cleanText(value);
+  const match = raw.match(/\/abs\/([^/?#]+)/);
+  return (match?.[1] || raw).replace(/v\d+$/, "");
+}
+
+function arxivPdfUrl(entry) {
+  const links = normalizeArray(entry.link);
+  const pdf = links.find((link) => link.title === "pdf" || link.type === "application/pdf");
+  if (pdf?.href) return pdf.href;
+  const id = firstText(entry.id);
+  return id ? id.replace("/abs/", "/pdf/") : "";
+}
+
+function enrichArxivEntry(entry, requestedTrack, query) {
+  const title = cleanText(firstText(entry.title));
+  if (!title) return null;
+
+  const summary =
+    cleanText(firstText(entry.summary)) ||
+    "arXiv API 当前没有返回摘要。建议从论文原文抽取方法、数据集、训练目标和实验指标；本条目先基于标题与主题进行工程化初筛。";
+  const authors = normalizeArray(entry.author)
+    .map((author) => cleanText(firstText(author.name || author)))
+    .filter(Boolean);
+  const categories = normalizeArray(entry.category)
+    .map((category) => category.term || firstText(category))
+    .filter(Boolean);
+  const published = firstText(entry.published).slice(0, 10) || END_DATE;
+  const updated = firstText(entry.updated).slice(0, 10) || published;
+  const { year, month } = dateParts(published);
+  const abstractUrl = firstText(entry.id);
+  const arxivId = arxivIdFromUrl(abstractUrl);
+  const coreText = `${title} ${summary}`;
+  const fullText = `${coreText} ${categories.join(" ")}`;
+  const requestedCoreScore = scoreTrack(coreText, requestedTrack);
+  const requestedFullScore = scoreTrack(fullText, requestedTrack);
+  const queryScore = scoreSignals(coreText, [query]);
+
+  if (requestedCoreScore === 0 && requestedFullScore === 0 && queryScore === 0) {
+    return null;
+  }
+
+  const inferredTrack = inferTrack(fullText, requestedTrack);
+  const trackId =
+    requestedTrack === "llm-recsys" && (requestedFullScore > 0 || scoreTrack(fullText, "llm-recsys") > 0 || queryScore > 0)
+      ? "llm-recsys"
+      : inferredTrack;
+  const track = tracks.find((item) => item.id === trackId) || tracks[0];
+  const keywords = pickKeywords(fullText, categories, [query]);
+
+  return {
+    id: `arxiv:${arxivId || normalizeTitle(title)}`,
+    title,
+    authors,
+    published,
+    updated,
+    year,
+    month,
+    summary,
+    track: track.id,
+    trackLabel: track.label,
+    accent: track.accent,
+    categories: categories.slice(0, 5),
+    keywords: keywords.length ? keywords : ["论文精读", "工程验证"],
+    source: "arXiv API",
+    relevanceScore: scoreTrack(fullText, track.id),
+    coreRelevanceScore: scoreTrack(coreText, track.id),
+    requestedCoreScore,
+    requestedFullScore,
+    links: {
+      abstract: abstractUrl,
+      pdf: arxivPdfUrl(entry),
+    },
+    deconstruction: {
+      problem: buildProblem(summary, track.label),
+      method: buildMethod(title, summary, keywords),
+      contributions: buildContribution(summary, keywords),
+      experimentChecklist: buildExperimentChecklist(track.id),
+      engineeringUse:
+        "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。",
+    },
+    codeBlueprint: buildCodeBlueprint(track.id, keywords),
+  };
+}
+
+function enrichSemanticScholarPaper(work, requestedTrack, query) {
+  const title = cleanText(work.title);
+  if (!title) return null;
+
+  const summary =
+    cleanText(work.abstract || work.tldr?.text) ||
+    "Semantic Scholar 当前没有返回摘要。建议从论文原文抽取方法、数据集、训练目标和实验指标；本条目先基于标题与主题进行工程化初筛。";
+  const authors = normalizeArray(work.authors)
+    .map((author) => cleanText(author.name))
+    .filter(Boolean);
+  const categories = [
+    ...normalizeArray(work.fieldsOfStudy),
+    ...normalizeArray(work.s2FieldsOfStudy).map((field) => field.category || field.source),
+    work.venue,
+  ].filter(Boolean);
+  const published = work.publicationDate || (work.year ? `${work.year}-01-01` : END_DATE);
+  const { year, month } = dateParts(published);
+  const coreText = `${title} ${summary}`;
+  const fullText = `${coreText} ${categories.join(" ")}`;
+  const requestedCoreScore = scoreTrack(coreText, requestedTrack);
+  const requestedFullScore = scoreTrack(fullText, requestedTrack);
+  const queryScore = scoreSignals(coreText, [query]);
+
+  if (requestedCoreScore === 0 && requestedFullScore === 0 && queryScore === 0) {
+    return null;
+  }
+
+  const inferredTrack = inferTrack(fullText, requestedTrack);
+  const trackId =
+    requestedTrack === "llm-recsys" && (requestedFullScore > 0 || scoreTrack(fullText, "llm-recsys") > 0 || queryScore > 0)
+      ? "llm-recsys"
+      : inferredTrack;
+  const track = tracks.find((item) => item.id === trackId) || tracks[0];
+  const keywords = pickKeywords(fullText, categories, [query]);
+  const doi = work.externalIds?.DOI;
+  const arxiv = work.externalIds?.ArXiv;
+
+  return {
+    id: doi ? `doi:${doi.toLowerCase()}` : arxiv ? `arxiv:${String(arxiv).replace(/v\d+$/, "")}` : `s2:${work.paperId || normalizeTitle(title)}`,
+    title,
+    authors,
+    published,
+    updated: published,
+    year,
+    month,
+    summary,
+    track: track.id,
+    trackLabel: track.label,
+    accent: track.accent,
+    categories: categories.slice(0, 5),
+    keywords: keywords.length ? keywords : ["论文精读", "工程验证"],
+    source: work.venue || "Semantic Scholar",
+    relevanceScore: scoreTrack(fullText, track.id),
+    coreRelevanceScore: scoreTrack(coreText, track.id),
+    requestedCoreScore,
+    requestedFullScore,
+    links: {
+      abstract: work.url || (doi ? `https://doi.org/${doi}` : ""),
+      pdf: work.openAccessPdf?.url || "",
+    },
+    deconstruction: {
+      problem: buildProblem(summary, track.label),
+      method: buildMethod(title, summary, keywords),
+      contributions: buildContribution(summary, keywords),
+      experimentChecklist: buildExperimentChecklist(track.id),
+      engineeringUse:
+        "建议先做离线复现：固定数据切分和指标口径，抽出论文中的主损失、特征输入和对照组，再决定是否进入线上小流量实验。",
+    },
+    codeBlueprint: buildCodeBlueprint(track.id, keywords),
+  };
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 22000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -844,6 +1174,101 @@ async function fetchOpenAlexQuery(track, query, sourceScope, fetchWindow) {
     cursor = data.meta?.next_cursor;
     if (!cursor || results.length < PAGE_SIZE) break;
     await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+  }
+
+  return fetched;
+}
+
+async function fetchDirectArxivQuery(track, query, fetchWindow) {
+  const fetched = [];
+  const maxPages = maxDirectArxivPagesForWindow(fetchWindow);
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const params = new URLSearchParams({
+      search_query: arxivSearchQuery(track.id, query, fetchWindow),
+      start: String(page * ARXIV_PAGE_SIZE),
+      max_results: String(ARXIV_PAGE_SIZE),
+      sortBy: "submittedDate",
+      sortOrder: "descending",
+    });
+
+    const response = await fetchWithTimeout(
+      `${ARXIV_ENDPOINT}?${params.toString()}`,
+      {
+        headers: {
+          "User-Agent": "paper-intelligence-hub/0.3 (mailto:paper-hub@example.com)",
+        },
+      },
+      45000,
+    );
+
+    if (!response.ok) {
+      throw new Error(`arXiv ${track.id}/${query} failed: ${response.status} ${response.statusText}`);
+    }
+
+    const xml = await response.text();
+    const parsed = xmlParser.parse(xml);
+    const entries = normalizeArray(parsed.feed?.entry);
+    const enriched = entries
+      .map((entry) => enrichArxivEntry(entry, track.id, query))
+      .filter(Boolean)
+      .map(finalizePaper);
+    fetched.push(...enriched);
+
+    console.log(`[${track.id}] ${fetchWindow.label} arxiv-api "${query}" page ${page + 1}/${maxPages}: ${enriched.length}/${entries.length} kept`);
+
+    if (entries.length < ARXIV_PAGE_SIZE) break;
+    await new Promise((resolve) => setTimeout(resolve, ARXIV_REQUEST_DELAY_MS));
+  }
+
+  return fetched;
+}
+
+async function fetchSemanticScholarQuery(track, query, fetchWindow) {
+  const fetched = [];
+  let token = "";
+  const fromYear = fetchWindow.from.slice(0, 4);
+  const toYear = fetchWindow.to.slice(0, 4);
+  const yearFilter = fromYear === toYear ? fromYear : `${fromYear}-${toYear}`;
+
+  for (let page = 0; page < MAX_S2_PAGES_PER_QUERY; page += 1) {
+    const params = new URLSearchParams({
+      query,
+      year: yearFilter,
+      fields:
+        "paperId,externalIds,title,authors,abstract,year,publicationDate,url,venue,openAccessPdf,fieldsOfStudy,s2FieldsOfStudy,publicationTypes,citationCount",
+      limit: String(S2_PAGE_SIZE),
+      sort: "publicationDate:desc",
+    });
+    if (token) params.set("token", token);
+
+    const response = await fetchWithTimeout(
+      `${SEMANTIC_SCHOLAR_ENDPOINT}?${params.toString()}`,
+      {
+        headers: {
+          "User-Agent": "paper-intelligence-hub/0.3 (mailto:paper-hub@example.com)",
+        },
+      },
+      45000,
+    );
+
+    if (!response.ok) {
+      throw new Error(`Semantic Scholar ${track.id}/${query} failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const results = normalizeArray(data.data);
+    const enriched = results
+      .map((work) => enrichSemanticScholarPaper(work, track.id, query))
+      .filter(Boolean)
+      .map(finalizePaper);
+    fetched.push(...enriched);
+
+    console.log(`[${track.id}] ${fetchWindow.label} s2 "${query}" page ${page + 1}/${MAX_S2_PAGES_PER_QUERY}: ${enriched.length}/${results.length} kept`);
+
+    token = data.token;
+    if (!token || results.length < S2_PAGE_SIZE) break;
+    await new Promise((resolve) => setTimeout(resolve, S2_REQUEST_DELAY_MS));
   }
 
   return fetched;
@@ -1044,24 +1469,78 @@ async function main() {
   } else {
     const yearlyBackfill = MODE === "full" || process.env.PAPER_YEARLY_BACKFILL === "true";
     const fetchWindows = buildFetchWindows(START_DATE, END_DATE, yearlyBackfill);
+    const selectedTrackIds = process.env.PAPER_TRACKS
+      ? new Set(process.env.PAPER_TRACKS.split(",").map((item) => item.trim()).filter(Boolean))
+      : null;
+    const selectedQueries = process.env.PAPER_QUERIES
+      ? new Set(process.env.PAPER_QUERIES.split("|").map((item) => item.trim()).filter(Boolean))
+      : null;
+    const activeTracks = selectedTrackIds ? tracks.filter((track) => selectedTrackIds.has(track.id)) : tracks;
+    const filterQueries = (queries) => (selectedQueries ? queries.filter((query) => selectedQueries.has(query)) : queries);
 
-    for (const track of tracks) {
-      for (const query of track.openAlexQueries) {
-        for (const sourceScope of track.sourceScopes) {
+    if (FETCH_SOURCES.has("openalex")) {
+      for (const track of activeTracks) {
+        for (const query of filterQueries(track.openAlexQueries)) {
+          for (const sourceScope of track.sourceScopes) {
+            for (const fetchWindow of fetchWindows) {
+              try {
+                const papers = await fetchOpenAlexQuery(track, query, sourceScope, fetchWindow);
+                fetched.push(...papers);
+                networkFetched += papers.length;
+              } catch (error) {
+                errors.push({
+                  track: track.id,
+                  source: `OpenAlex:${sourceScope}:${fetchWindow.label}`,
+                  query,
+                  message: error.message,
+                });
+              }
+              await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+            }
+          }
+        }
+      }
+    }
+
+    if (FETCH_SOURCES.has("arxiv")) {
+      for (const track of activeTracks) {
+        for (const query of filterQueries(track.arxivQueries || track.openAlexQueries)) {
           for (const fetchWindow of fetchWindows) {
             try {
-              const papers = await fetchOpenAlexQuery(track, query, sourceScope, fetchWindow);
+              const papers = await fetchDirectArxivQuery(track, query, fetchWindow);
               fetched.push(...papers);
               networkFetched += papers.length;
             } catch (error) {
               errors.push({
                 track: track.id,
-                source: `OpenAlex:${sourceScope}:${fetchWindow.label}`,
+                source: `arXiv:${fetchWindow.label}`,
                 query,
                 message: error.message,
               });
             }
-            await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+            await new Promise((resolve) => setTimeout(resolve, ARXIV_REQUEST_DELAY_MS));
+          }
+        }
+      }
+    }
+
+    if (FETCH_SOURCES.has("s2") || FETCH_SOURCES.has("semantic-scholar")) {
+      for (const track of activeTracks) {
+        for (const query of filterQueries(track.arxivQueries || track.openAlexQueries)) {
+          for (const fetchWindow of fetchWindows) {
+            try {
+              const papers = await fetchSemanticScholarQuery(track, query, fetchWindow);
+              fetched.push(...papers);
+              networkFetched += papers.length;
+            } catch (error) {
+              errors.push({
+                track: track.id,
+                source: `SemanticScholar:${fetchWindow.label}`,
+                query,
+                message: error.message,
+              });
+            }
+            await new Promise((resolve) => setTimeout(resolve, S2_REQUEST_DELAY_MS));
           }
         }
       }
@@ -1091,34 +1570,62 @@ async function main() {
   const uniquePapers = [...new Set(byKey.values())].sort((a, b) => {
     const dateDiff = new Date(b.published).getTime() - new Date(a.published).getTime();
     return dateDiff || qualityScore(b) - qualityScore(a);
-  });
+  }).filter((paper) => !paper.published || paper.published <= END_DATE);
 
-  const balanced = [];
-  for (const track of tracks) {
-    balanced.push(
-      ...uniquePapers
-        .filter((paper) => paper.track === track.id)
-        .sort((a, b) => {
-          const dateDiff = new Date(b.published).getTime() - new Date(a.published).getTime();
-          return dateDiff || qualityScore(b) - qualityScore(a);
-        })
-        .slice(0, PER_TRACK_LIMIT),
-    );
+  const years = [...new Set(uniquePapers.map((paper) => paper.year || dateParts(paper.published).year).filter(Boolean))].sort((a, b) =>
+    String(b).localeCompare(String(a)),
+  );
+  const bucketLimit = Number(process.env.PAPER_YEAR_TRACK_LIMIT || Math.max(120, Math.ceil(TOTAL_LIMIT / Math.max(1, years.length * tracks.length))));
+  const selected = [];
+  const selectedIds = new Set();
+  const rankPapers = (items) =>
+    items.sort((a, b) => {
+      const qualityDiff = qualityScore(b) - qualityScore(a);
+      const dateDiff = new Date(b.published).getTime() - new Date(a.published).getTime();
+      return qualityDiff || dateDiff;
+    });
+
+  for (const year of years) {
+    for (const track of tracks) {
+      const bucket = rankPapers(
+        uniquePapers.filter((paper) => (paper.year || dateParts(paper.published).year) === year && paper.track === track.id),
+      ).slice(0, Math.min(bucketLimit, PER_TRACK_LIMIT));
+
+      for (const paper of bucket) {
+        if (!selectedIds.has(paper.id)) {
+          selectedIds.add(paper.id);
+          selected.push(paper);
+        }
+      }
+    }
   }
 
-  const papers = [...new Set(balanced)]
-    .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime())
-    .slice(0, TOTAL_LIMIT);
+  const remaining = rankPapers(uniquePapers.filter((paper) => !selectedIds.has(paper.id))).slice(0, Math.max(0, TOTAL_LIMIT - selected.length));
+  const papers = [...selected, ...remaining]
+    .slice(0, TOTAL_LIMIT)
+    .sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime() || qualityScore(b) - qualityScore(a));
   const timeline = buildTimeline(papers);
   const topics = buildTopicSummary(papers);
   const trends = buildTrends(papers, topics);
   const previousIds = new Set(existingPapers.map((paper) => paper.id));
   const newSinceLastRun = MODE === "incremental" ? papers.filter((paper) => !previousIds.has(paper.id)).length : 0;
+  const rawFetchedCount = Math.max(fetched.length, existingData?.stats?.rawFetched || 0);
+  const uniqueTotalCount = Math.max(uniquePapers.length, existingData?.stats?.uniqueTotal || 0);
+  const mergedFetchSources = new Set(FETCH_SOURCES);
+  if ((existingData?.source || "").toLowerCase().includes("openalex")) mergedFetchSources.add("openalex");
+  if ((existingData?.source || "").toLowerCase().includes("arxiv")) mergedFetchSources.add("arxiv");
+  if ((existingData?.source || "").toLowerCase().includes("semantic scholar")) mergedFetchSources.add("s2");
+  const sourceNames = [];
+  if (mergedFetchSources.has("openalex")) sourceNames.push("OpenAlex API");
+  if (mergedFetchSources.has("arxiv")) sourceNames.push("arXiv API");
+  if (mergedFetchSources.has("s2") || mergedFetchSources.has("semantic-scholar")) sourceNames.push("Semantic Scholar API");
+  const sourceLabel = sourceNames.length ? sourceNames.join(" + ") : [...mergedFetchSources].join(" + ");
 
   const data = {
     generatedAt: new Date().toISOString(),
-    source: "OpenAlex API",
+    source: sourceLabel,
     mode: MODE,
+    fetchSources: [...mergedFetchSources],
     dateRange: {
       from: MODE === "incremental" && existingData?.dateRange?.from ? existingData.dateRange.from : START_DATE,
       to: MODE === "incremental" ? maxDateString(existingData?.dateRange?.to, END_DATE) : END_DATE,
@@ -1136,11 +1643,12 @@ async function main() {
     },
     stats: {
       total: papers.length,
-      rawFetched: fetched.length,
+      rawFetched: rawFetchedCount,
       networkFetched,
-      uniqueTotal: uniquePapers.length,
+      uniqueTotal: uniqueTotalCount,
       outputLimit: TOTAL_LIMIT,
       perTrackLimit: PER_TRACK_LIMIT,
+      yearTrackLimit: bucketLimit,
       newSinceLastRun,
       byTrack: tracks.map((track) => ({
         id: track.id,

@@ -14,8 +14,9 @@ npm run dev
 
 ## 主要功能
 
-- 全量抓取：OpenAlex 覆盖 `2023-01-01` 至今，默认扩大到每个 arXiv 查询 5 页、通用查询 2 页。
+- 全量抓取：OpenAlex、arXiv API、Semantic Scholar API 三源合并，覆盖 `2023-01-01` 至今。
 - 年份回填：全量模式会按年份窗口抓取，避免热门方向只保留最新年份。
+- 分桶保底：输出层按 `年份 x 方向` 先保留高质量论文，再按质量补齐，避免 2026 新论文挤掉 2023-2025。
 - 增量更新：`npm run fetch:incremental` 会读取现有 `public/data/papers.json`，只抓最近窗口并合并去重。
 - 主题与趋势：自动归类到 LLM 推荐、生成式推荐、CTR/CVR、拍卖出价、RAG/智能体、对齐、多模态等主题。
 - 论文拆解：为每篇论文生成问题、方法、贡献、实验检查、质量分、复现路径和关键代码骨架。
@@ -48,10 +49,17 @@ npm run fetch:incremental
 npm run fetch:backfill
 ```
 
+只补 arXiv 或 Semantic Scholar：
+
+```bash
+npm run fetch:arxiv
+npm run fetch:s2
+```
+
 全量采集参数：
 
 ```bash
-PAPER_START_DATE="2023-01-01" PAPER_TOTAL_LIMIT=6000 npm run fetch:papers
+PAPER_START_DATE="2023-01-01" PAPER_TOTAL_LIMIT=12000 npm run fetch:papers
 ```
 
 只想刷新派生字段和导出文件，不重新请求网络：
@@ -80,6 +88,8 @@ git subtree push --prefix paper-intelligence-hub/dist origin gh-pages
 ## 数据来源
 
 - OpenAlex API
+- arXiv API
+- Semantic Scholar Graph API
 - 输出文件：`public/data/papers.json`
 - 导出文件：`public/data/exports/*`
 - 拉取脚本：`scripts/fetch-papers.mjs`

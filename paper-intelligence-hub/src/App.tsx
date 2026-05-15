@@ -506,7 +506,7 @@ function App() {
         <div className="stat-cell">
           <span>候选抓取</span>
           <strong>{data.stats.rawFetched ?? data.stats.total}</strong>
-          <em>{data.stats.networkFetched ? `本次新增候选 ${data.stats.networkFetched}` : "OpenAlex 聚合"}</em>
+          <em>{data.stats.networkFetched ? `本次新增候选 ${data.stats.networkFetched}` : "多源聚合"}</em>
         </div>
         <div className="stat-cell">
           <span>主题</span>
