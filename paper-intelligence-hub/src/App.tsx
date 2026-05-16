@@ -342,7 +342,7 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("brief");
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("explore");
-  const [densityMode, setDensityMode] = useState<DensityMode>("comfortable");
+  const [densityMode, setDensityMode] = useState<DensityMode>("compact");
   const [displayLimit, setDisplayLimit] = useState(180);
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -1178,7 +1178,7 @@ function App() {
         </button>
         <button className={`density-button ${densityMode === "compact" ? "active" : ""}`} onClick={() => setDensityMode(densityMode === "compact" ? "comfortable" : "compact")} type="button">
           <Rows3 size={16} />
-          {densityMode === "compact" ? "舒适列表" : "紧凑列表"}
+          {densityMode === "compact" ? "卡片视图" : "表格视图"}
         </button>
         <button className="ghost-button" onClick={clearFilters} type="button">
           <X size={16} />

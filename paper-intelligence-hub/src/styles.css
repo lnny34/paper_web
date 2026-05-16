@@ -194,7 +194,7 @@ mark {
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.4fr);
   gap: 12px;
-  margin: 12px 0;
+  margin: 10px 0;
 }
 
 .console-main,
@@ -205,7 +205,7 @@ mark {
 }
 
 .console-main {
-  padding: 16px;
+  padding: 12px;
   background:
     linear-gradient(135deg, rgba(65, 118, 155, 0.24), rgba(47, 125, 103, 0.14) 44%, rgba(214, 118, 69, 0.14)),
     #17211f;
@@ -233,11 +233,11 @@ mark {
   display: flex;
   gap: 16px;
   align-items: flex-end;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .console-title-row strong {
-  font-size: 52px;
+  font-size: 42px;
   line-height: 0.92;
   letter-spacing: 0;
 }
@@ -259,12 +259,12 @@ mark {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .console-metrics div {
   min-width: 0;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.08);
@@ -281,14 +281,14 @@ mark {
   display: block;
   margin-top: 7px;
   color: #fff;
-  font-size: 21px;
+  font-size: 18px;
   line-height: 1;
 }
 
 .track-lane {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
   background: rgba(255, 255, 255, 0.86);
 }
 
@@ -332,7 +332,7 @@ mark {
 .track-pills button {
   --accent: #2f7d67;
   --share: 50%;
-  min-height: 74px;
+  min-height: 62px;
   position: relative;
   align-content: start;
   flex-wrap: wrap;
@@ -358,7 +358,7 @@ mark {
 .track-pills b {
   width: 100%;
   margin-top: 4px;
-  font-size: 24px;
+  font-size: 21px;
   line-height: 1;
 }
 
@@ -374,10 +374,10 @@ mark {
 
 .insight-digest {
   display: grid;
-  grid-template-columns: minmax(230px, 0.28fr) minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(190px, 0.22fr) minmax(0, 1fr);
+  gap: 8px;
   align-items: stretch;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .digest-title,
@@ -391,7 +391,7 @@ mark {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 14px;
+  padding: 10px 12px;
   color: #17211f;
 }
 
@@ -420,8 +420,8 @@ mark {
 }
 
 .digest-card {
-  min-height: 96px;
-  padding: 12px;
+  min-height: 72px;
+  padding: 10px;
   color: #17211f;
   text-align: left;
 }
@@ -442,14 +442,14 @@ mark {
 
 .digest-card strong {
   display: block;
-  margin-top: 10px;
-  font-size: 17px;
+  margin-top: 7px;
+  font-size: 15px;
   line-height: 1.18;
 }
 
 .digest-card em {
   display: block;
-  margin-top: 7px;
+  margin-top: 5px;
   color: #68736e;
   font-size: 12px;
   font-style: normal;
@@ -786,11 +786,11 @@ mark {
 
 .paper-board {
   min-width: 0;
-  padding: 12px;
+  padding: 10px;
 }
 
 .board-head {
-  min-height: 58px;
+  min-height: 48px;
   display: flex;
   justify-content: space-between;
   gap: 14px;
@@ -801,7 +801,7 @@ mark {
 .board-head h2 {
   margin: 0;
   color: #17211f;
-  font-size: 25px;
+  font-size: 22px;
   line-height: 1.12;
   letter-spacing: 0;
 }
@@ -831,7 +831,7 @@ mark {
 }
 
 .paper-table-head {
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 10px;
   border-bottom: 1px solid rgba(23, 33, 31, 0.1);
   background: #f6f7f2;
@@ -848,7 +848,7 @@ mark {
 .paper-table-row {
   --accent: #2f7d67;
   --score: 50%;
-  min-height: 68px;
+  min-height: 64px;
   padding: 8px 10px;
   border-bottom: 1px solid rgba(23, 33, 31, 0.08);
   border-left: 3px solid transparent;
