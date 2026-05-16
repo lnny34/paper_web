@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   BookMarked,
   BookOpenText,
+  BrainCircuit,
   CalendarClock,
   CalendarDays,
   CheckCircle2,
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   Code2,
   Command,
+  Compass,
   Copy,
   Database,
   Download,
@@ -21,7 +23,7 @@ import {
   FileText,
   FlaskConical,
   Gauge,
-  GitBranch,
+  Library,
   Layers3,
   LineChart,
   ListFilter,
@@ -31,6 +33,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  Telescope,
   Target,
   Wrench,
   X,
@@ -192,6 +195,14 @@ type SortMode = "latest" | "quality" | "relevance" | "title";
 type SourceFilter = "all" | "pdf" | "arxiv" | "openalex";
 type StatusFilter = "all" | "favorite" | UserStatus;
 type DetailTab = "brief" | "reproduce" | "code" | "meta";
+type InsightCard = {
+  id: string;
+  label: string;
+  title: string;
+  meta: string;
+  icon: ReactNode;
+  action: () => void;
+};
 
 const STORAGE_KEY = "paper-intelligence-hub/user-state/v2";
 const baseUrl = import.meta.env.BASE_URL;
@@ -281,6 +292,18 @@ function sourceKind(paper: Paper) {
   if (source.includes("arxiv")) return "arXiv";
   if (paper.links?.pdf) return "Open PDF";
   return paper.source || "OpenAlex";
+}
+
+function compactSummary(value: string, maxLength = 132) {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength).trim()}...`;
+}
+
+function paperSignal(paper: Paper) {
+  if (paper.quality?.reasons?.[0]) return paper.quality.reasons[0];
+  if (paper.keywords?.[0]) return paper.keywords[0];
+  if (paper.categories?.[0]) return paper.categories[0];
+  return "待分析";
 }
 
 function highlightText(text: string, query: string) {
@@ -509,6 +532,19 @@ function App() {
     query.trim().length > 0,
   ].filter(Boolean).length;
 
+  const qualityPapers = useMemo(() => filteredPapers.filter((paper) => qualityScore(paper) >= 90), [filteredPapers]);
+  const reproduceCandidates = useMemo(
+    () =>
+      filteredPapers.filter(
+        (paper) =>
+          paper.links?.pdf &&
+          ((paper.keywords || []).some((keyword) => /dataset|benchmark|evaluation|training|ranking|retrieval|agent|rag/i.test(keyword)) ||
+            qualityScore(paper) >= 88),
+      ),
+    [filteredPapers],
+  );
+  const latestPapers = useMemo(() => filteredPapers.slice(0, 12), [filteredPapers]);
+
   function clearFilters() {
     setActiveTrack("all");
     setActiveYear("all");
@@ -557,6 +593,54 @@ function App() {
     window.setTimeout(() => setCopied(false), 1400);
   }
 
+  const insightCards: InsightCard[] = [
+    {
+      id: "rising",
+      label: "趋势主题",
+      title: data?.trends?.risingTopics?.[0]?.label || "研究主题",
+      meta: data?.trends?.risingTopics?.[0] ? `近月增长 ${data.trends.risingTopics[0].delta >= 0 ? "+" : ""}${data.trends.risingTopics[0].delta}` : "暂无趋势数据",
+      icon: <Sparkles size={16} />,
+      action: () => {
+        const topic = data?.trends?.risingTopics?.[0];
+        if (topic) setActiveTopic(topic.id);
+      },
+    },
+    {
+      id: "quality",
+      label: "高质量优先",
+      title: `${formatNumber(qualityPapers.length)} 篇强信号论文`,
+      meta: qualityPapers[0] ? compactSummary(qualityPapers[0].title, 58) : "当前筛选下暂无高分论文",
+      icon: <BadgeCheck size={16} />,
+      action: () => {
+        setSortMode("quality");
+        if (qualityPapers[0]) setSelectedId(qualityPapers[0].id);
+      },
+    },
+    {
+      id: "reproduce",
+      label: "复现候选",
+      title: `${formatNumber(reproduceCandidates.length)} 篇可落地`,
+      meta: reproduceCandidates[0] ? paperSignal(reproduceCandidates[0]) : "优先选择有 PDF 和实验信号的论文",
+      icon: <FlaskConical size={16} />,
+      action: () => {
+        setSourceFilter("pdf");
+        setSortMode("quality");
+        if (reproduceCandidates[0]) setSelectedId(reproduceCandidates[0].id);
+      },
+    },
+    {
+      id: "latest",
+      label: "最新队列",
+      title: `${latestTrend?.month || "最新"} 更新`,
+      meta: latestPapers[0] ? compactSummary(latestPapers[0].title, 58) : "当前筛选暂无论文",
+      icon: <Telescope size={16} />,
+      action: () => {
+        setSortMode("latest");
+        if (latestPapers[0]) setSelectedId(latestPapers[0].id);
+      },
+    },
+  ];
+
   function renderPaperRow(paper: Paper, index: number) {
     if (!data) return null;
     const state = userState[paper.id] || {};
@@ -596,6 +680,16 @@ function App() {
                 {topic.label}
               </button>
             ))}
+          </div>
+          <div className="paper-signal-row">
+            <span>
+              <BrainCircuit size={13} />
+              {paperSignal(paper)}
+            </span>
+            <span>
+              <Library size={13} />
+              {paper.categories.slice(0, 2).join(" / ") || sourceKind(paper)}
+            </span>
           </div>
         </div>
         <div className="paper-score" aria-label={`质量 ${score}`}>
@@ -770,32 +864,36 @@ function App() {
 
     return (
       <>
-        <section className="detail-section">
-          <h3>
-            <Target size={16} />
-            问题
-          </h3>
-          <p>{selectedPaper.deconstruction.problem}</p>
-        </section>
-
-        <section className="detail-section">
-          <h3>
-            <GitBranch size={16} />
-            方法
-          </h3>
-          <p>{selectedPaper.deconstruction.method}</p>
+        <section className="takeaway-panel">
+          <div className="takeaway-head">
+            <span>
+              <BrainCircuit size={16} />
+              核心拆解
+            </span>
+            <b>{selectedPaper.quality?.level || "观察"}质量</b>
+          </div>
+          <div className="takeaway-grid">
+            <article>
+              <span>问题定义</span>
+              <p>{selectedPaper.deconstruction.problem}</p>
+            </article>
+            <article>
+              <span>方法路径</span>
+              <p>{selectedPaper.deconstruction.method}</p>
+            </article>
+          </div>
         </section>
 
         <section className="detail-section">
           <h3>
             <Zap size={16} />
-            贡献
+            关键贡献
           </h3>
-          <ul>
+          <div className="contribution-list">
             {selectedPaper.deconstruction.contributions.map((item) => (
-              <li key={item}>{item}</li>
+              <span key={item}>{item}</span>
             ))}
-          </ul>
+          </div>
         </section>
 
         <section className="detail-section">
@@ -942,6 +1040,28 @@ function App() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      <section className="insight-digest" aria-label="研究洞察摘要">
+        <div className="digest-title">
+          <Compass size={17} />
+          <div>
+            <span>今日研究优先级</span>
+            <b>从 {formatNumber(filteredPapers.length)} 篇匹配结果中自动提炼</b>
+          </div>
+        </div>
+        <div className="digest-grid">
+          {insightCards.map((item) => (
+            <button className="digest-card" key={item.id} onClick={item.action} type="button">
+              <span>
+                {item.icon}
+                {item.label}
+              </span>
+              <strong>{item.title}</strong>
+              <em>{item.meta}</em>
+            </button>
+          ))}
         </div>
       </section>
 
