@@ -63,7 +63,7 @@ mark {
   padding: 16px;
   border: 1px solid rgba(23, 33, 31, 0.12);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 18px 50px rgba(23, 33, 31, 0.06);
 }
 
@@ -129,6 +129,7 @@ mark {
 .export-row a,
 .active-context,
 .ghost-button,
+.mode-button,
 .selectbox,
 .link-row a,
 .detail-actions button,
@@ -529,11 +530,27 @@ mark {
   color: #17211f;
 }
 
+.mode-button {
+  height: 44px;
+  flex: 0 0 auto;
+  color: #17211f;
+}
+
+.mode-button.active {
+  border-color: #17211f;
+  background: #17211f;
+  color: #fff;
+}
+
 .workspace-grid {
   display: grid;
   grid-template-columns: 290px minmax(420px, 1fr) minmax(380px, 460px);
   gap: 12px;
   align-items: start;
+}
+
+.workspace-grid.focus-mode {
+  grid-template-columns: minmax(560px, 1fr) minmax(430px, 560px);
 }
 
 .insight-panel,
@@ -1057,6 +1074,30 @@ mark {
   font-weight: 850;
 }
 
+.detail-brief-card {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, rgba(23, 33, 31, 0.1));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
+}
+
+.detail-brief-card span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: color-mix(in srgb, var(--accent) 72%, #17211f);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.detail-brief-card p {
+  margin: 8px 0 0;
+  color: #17211f;
+  font-size: 13px;
+  line-height: 1.56;
+}
+
 .detail-progress {
   --score: 0%;
   display: grid;
@@ -1483,6 +1524,10 @@ code {
 
   .workspace-grid {
     grid-template-columns: 290px minmax(0, 1fr);
+  }
+
+  .workspace-grid.focus-mode {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .detail-panel {

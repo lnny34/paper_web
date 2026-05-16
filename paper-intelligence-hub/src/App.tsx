@@ -195,6 +195,7 @@ type SortMode = "latest" | "quality" | "relevance" | "title";
 type SourceFilter = "all" | "pdf" | "arxiv" | "openalex";
 type StatusFilter = "all" | "favorite" | UserStatus;
 type DetailTab = "brief" | "reproduce" | "code" | "meta";
+type WorkspaceMode = "explore" | "focus";
 type InsightCard = {
   id: string;
   label: string;
@@ -339,6 +340,7 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("brief");
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("explore");
   const [displayLimit, setDisplayLimit] = useState(180);
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -544,6 +546,9 @@ function App() {
     [filteredPapers],
   );
   const latestPapers = useMemo(() => filteredPapers.slice(0, 12), [filteredPapers]);
+  const selectedReadingValue = selectedPaper
+    ? selectedPaper.deconstruction?.engineeringUse || selectedPaper.quality?.reasons?.join(" / ") || compactSummary(selectedPaper.summary, 180)
+    : "";
 
   function clearFilters() {
     setActiveTrack("all");
@@ -1107,13 +1112,18 @@ function App() {
           {activeYear !== "all" && <span>{activeYear}</span>}
           {activeMonth !== "all" && <span>{monthLabel(activeMonth)}</span>}
         </div>
+        <button className={`mode-button ${workspaceMode === "focus" ? "active" : ""}`} onClick={() => setWorkspaceMode(workspaceMode === "focus" ? "explore" : "focus")} type="button">
+          <Eye size={16} />
+          {workspaceMode === "focus" ? "探索视图" : "专注阅读"}
+        </button>
         <button className="ghost-button" onClick={clearFilters} type="button">
           <X size={16} />
           重置
         </button>
       </section>
 
-      <section className="workspace-grid">
+      <section className={`workspace-grid ${workspaceMode === "focus" ? "focus-mode" : ""}`}>
+        {workspaceMode === "explore" && (
         <aside className="insight-panel">
           <div className="panel-card scope-card">
             <div className="panel-title compact">
@@ -1256,6 +1266,7 @@ function App() {
             ))}
           </div>
         </aside>
+        )}
 
         <section className="paper-board">
           <div className="board-head">
@@ -1293,6 +1304,13 @@ function App() {
                 <span>{formatDate(selectedPaper.published)}</span>
                 <span>{sourceKind(selectedPaper)}</span>
                 <span>#{selectedPosition || "-"}</span>
+              </div>
+              <div className="detail-brief-card">
+                <span>
+                  <BrainCircuit size={15} />
+                  阅读价值
+                </span>
+                <p>{selectedReadingValue}</p>
               </div>
               <div className="detail-progress" style={{ "--score": `${Math.min(100, Math.round(qualityScore(selectedPaper)))}%` } as CSSProperties}>
                 <span>质量信号</span>
