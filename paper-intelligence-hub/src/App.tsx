@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import {
   ArrowDownAZ,
   ArrowUpRight,
-  BarChart3,
+  BadgeCheck,
   BookMarked,
   BookOpenText,
   CalendarClock,
@@ -17,10 +17,13 @@ import {
   FileJson,
   FileText,
   FlaskConical,
+  Gauge,
   GitBranch,
   Layers3,
+  LineChart,
   ListFilter,
   RefreshCcw,
+  Rows3,
   Search,
   Sparkles,
   Star,
@@ -184,6 +187,7 @@ type PaperUserState = {
 type SortMode = "latest" | "quality" | "relevance" | "title";
 type SourceFilter = "all" | "pdf" | "arxiv" | "openalex";
 type StatusFilter = "all" | "favorite" | UserStatus;
+type DetailTab = "brief" | "reproduce" | "code" | "meta";
 
 const STORAGE_KEY = "paper-intelligence-hub/user-state/v2";
 const baseUrl = import.meta.env.BASE_URL;
@@ -201,6 +205,8 @@ const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
   minute: "2-digit",
 });
 
+const numberFormatter = new Intl.NumberFormat("en-US");
+
 const statusOptions: { id: UserStatus; label: string; icon: ReactNode }[] = [
   { id: "todo", label: "待读", icon: <BookMarked size={14} /> },
   { id: "reading", label: "在读", icon: <Eye size={14} /> },
@@ -208,6 +214,17 @@ const statusOptions: { id: UserStatus; label: string; icon: ReactNode }[] = [
   { id: "reproduce", label: "复现", icon: <Wrench size={14} /> },
   { id: "ignored", label: "忽略", icon: <X size={14} /> },
 ];
+
+const detailTabs: { id: DetailTab; label: string; icon: ReactNode }[] = [
+  { id: "brief", label: "解读", icon: <BookOpenText size={15} /> },
+  { id: "reproduce", label: "复现", icon: <FlaskConical size={15} /> },
+  { id: "code", label: "代码", icon: <Code2 size={15} /> },
+  { id: "meta", label: "元数据", icon: <FileText size={15} /> },
+];
+
+function formatNumber(value?: number) {
+  return numberFormatter.format(value ?? 0);
+}
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -249,6 +266,19 @@ function qualityScore(paper: Paper) {
   return paper.quality?.score ?? (paper.coreRelevanceScore || 0) * 8 + (paper.relevanceScore || 0);
 }
 
+function authorLine(authors: string[]) {
+  if (!authors.length) return "Unknown authors";
+  const shown = authors.slice(0, 5).join(", ");
+  return authors.length > 5 ? `${shown} +${authors.length - 5}` : shown;
+}
+
+function sourceKind(paper: Paper) {
+  const source = (paper.source || "").toLowerCase();
+  if (source.includes("arxiv")) return "arXiv";
+  if (paper.links?.pdf) return "Open PDF";
+  return paper.source || "OpenAlex";
+}
+
 function highlightText(text: string, query: string) {
   const needle = query.trim();
   if (!needle) return text;
@@ -281,6 +311,7 @@ function App() {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<DetailTab>("brief");
   const [displayLimit, setDisplayLimit] = useState(180);
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -329,6 +360,10 @@ function App() {
   useEffect(() => {
     setDisplayLimit(180);
   }, [activeTrack, activeYear, activeMonth, activeTopic, query, sortMode, sourceFilter, statusFilter]);
+
+  useEffect(() => {
+    setDetailTab("brief");
+  }, [selectedId]);
 
   const filteredPapers = useMemo(() => {
     if (!data) return [];
@@ -451,6 +486,15 @@ function App() {
     };
   }, [userState]);
 
+  const topicOptions = useMemo(() => {
+    return (data?.topics || []).filter((topic) => topic.count > 0).sort((a, b) => b.count - a.count);
+  }, [data]);
+
+  const selectedPosition = selectedPaper ? filteredPapers.findIndex((paper) => paper.id === selectedPaper.id) + 1 : 0;
+  const pdfCount = useMemo(() => data?.papers.filter((paper) => Boolean(paper.links?.pdf)).length ?? 0, [data]);
+  const sourceCount = data?.stats.bySource?.length ?? 0;
+  const latestTrend = recentTrendMonths[recentTrendMonths.length - 1];
+
   function clearFilters() {
     setActiveTrack("all");
     setActiveYear("all");
@@ -492,6 +536,258 @@ function App() {
     window.setTimeout(() => setCopied(false), 1400);
   }
 
+  function renderPaperRow(paper: Paper, index: number) {
+    if (!data) return null;
+    const state = userState[paper.id] || {};
+    const topics = paper.topics?.map((id) => data.topics?.find((topic) => topic.id === id)).filter(Boolean) as Topic[];
+    const score = Math.min(100, Math.max(0, Math.round(qualityScore(paper))));
+
+    return (
+      <article
+        className={`paper-row ${selectedPaper?.id === paper.id ? "selected" : ""}`}
+        data-testid="paper-row"
+        key={paper.id}
+        onClick={() => setSelectedId(paper.id)}
+        style={{ "--accent": paper.accent, "--score": `${score}%` } as CSSProperties}
+      >
+        <div className="paper-rank">{String(index + 1).padStart(2, "0")}</div>
+        <div className="paper-main">
+          <div className="paper-line">
+            <span className="track-dot" />
+            <span className="track-name">{paper.trackLabel}</span>
+            <span>{formatDate(paper.published)}</span>
+            <span>{sourceKind(paper)}</span>
+          </div>
+          <h3>{highlightText(paper.title, query)}</h3>
+          <p>{paper.summary}</p>
+          <div className="paper-meta-row">
+            <span>{authorLine(paper.authors)}</span>
+            {topics.slice(0, 3).map((topic) => (
+              <button
+                key={topic.id}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActiveTopic(activeTopic === topic.id ? "all" : topic.id);
+                }}
+                style={{ "--accent": topic.accent } as CSSProperties}
+                type="button"
+              >
+                {topic.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="paper-score" aria-label={`质量 ${score}`}>
+          <strong>{score}</strong>
+          <span>score</span>
+          <i />
+        </div>
+        <div className="paper-actions">
+          <button
+            className={state.favorite ? "active" : ""}
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleFavorite(paper.id);
+            }}
+            type="button"
+            title="收藏"
+          >
+            <Star size={14} />
+          </button>
+          {statusOptions.slice(0, 4).map((item) => (
+            <button
+              className={state.status === item.id ? "active" : ""}
+              key={item.id}
+              onClick={(event) => {
+                event.stopPropagation();
+                setPaperStatus(paper.id, state.status === item.id ? undefined : item.id);
+              }}
+              type="button"
+              title={item.label}
+            >
+              {item.icon}
+            </button>
+          ))}
+        </div>
+      </article>
+    );
+  }
+
+  function renderDetailContent() {
+    if (!selectedPaper) return null;
+
+    if (!selectedPaper.deconstruction || !selectedPaper.codeBlueprint) {
+      return (
+        <section className="detail-loading">
+          <RefreshCcw className={detailLoadingPath ? "spin" : ""} size={18} />
+          <h3>{detailError || "正在加载论文拆解"}</h3>
+          <p>完整解读、实验检查与代码骨架会随详情分片加载。</p>
+        </section>
+      );
+    }
+
+    if (detailTab === "reproduce") {
+      return (
+        <>
+          <section className="signal-grid">
+            <div>
+              <h3>方法信号</h3>
+              {(selectedPaper.deepDive?.methodSignals || []).map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <div>
+              <h3>数据/指标</h3>
+              {[...(selectedPaper.deepDive?.datasetSignals || []), ...(selectedPaper.deepDive?.metricSignals || [])].slice(0, 10).map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          </section>
+
+          <section className="detail-section">
+            <h3>
+              <FlaskConical size={16} />
+              实验检查
+            </h3>
+            <div className="check-list">
+              {selectedPaper.deconstruction.experimentChecklist.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          </section>
+
+          <section className="detail-section">
+            <h3>
+              <BookOpenText size={16} />
+              复现路径
+            </h3>
+            <ul>
+              {(selectedPaper.deepDive?.reproducePlan || []).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="quality-box">
+            <h3>质量依据</h3>
+            {(selectedPaper.quality?.reasons || []).map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </section>
+        </>
+      );
+    }
+
+    if (detailTab === "code") {
+      return (
+        <section className="code-panel">
+          <div className="code-head">
+            <h3>
+              <Code2 size={16} />
+              {selectedPaper.codeBlueprint.title}
+            </h3>
+            <button onClick={copyCode} type="button">
+              <Copy size={15} />
+              {copied ? "已复制" : "复制"}
+            </button>
+          </div>
+          <p>{selectedPaper.codeBlueprint.note}</p>
+          <pre>
+            <code>{selectedPaper.codeBlueprint.code}</code>
+          </pre>
+        </section>
+      );
+    }
+
+    if (detailTab === "meta") {
+      return (
+        <>
+          <section className="detail-section">
+            <h3>
+              <FileText size={16} />
+              摘要
+            </h3>
+            <p>{selectedPaper.summary}</p>
+          </section>
+
+          <section className="meta-grid">
+            <div>
+              <span>来源</span>
+              <b>{selectedPaper.source || data?.source || "OpenAlex"}</b>
+            </div>
+            <div>
+              <span>分类</span>
+              <b>{selectedPaper.categories.slice(0, 4).join(" / ") || "-"}</b>
+            </div>
+            <div>
+              <span>相关性</span>
+              <b>{selectedPaper.coreRelevanceScore ?? selectedPaper.relevanceScore ?? "-"}</b>
+            </div>
+            <div>
+              <span>更新</span>
+              <b>{formatDate(selectedPaper.updated)}</b>
+            </div>
+          </section>
+
+          <div className="link-row detail-link-row">
+            {selectedPaper.links.abstract && (
+              <a href={selectedPaper.links.abstract} target="_blank" rel="noreferrer">
+                摘要
+                <ArrowUpRight size={15} />
+              </a>
+            )}
+            {selectedPaper.links.pdf && (
+              <a href={selectedPaper.links.pdf} target="_blank" rel="noreferrer">
+                PDF
+                <ArrowUpRight size={15} />
+              </a>
+            )}
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <section className="detail-section">
+          <h3>
+            <Target size={16} />
+            问题
+          </h3>
+          <p>{selectedPaper.deconstruction.problem}</p>
+        </section>
+
+        <section className="detail-section">
+          <h3>
+            <GitBranch size={16} />
+            方法
+          </h3>
+          <p>{selectedPaper.deconstruction.method}</p>
+        </section>
+
+        <section className="detail-section">
+          <h3>
+            <Zap size={16} />
+            贡献
+          </h3>
+          <ul>
+            {selectedPaper.deconstruction.contributions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="detail-section">
+          <h3>
+            <BadgeCheck size={16} />
+            工程价值
+          </h3>
+          <p>{selectedPaper.deconstruction.engineeringUse}</p>
+        </section>
+      </>
+    );
+  }
+
   if (loadError) {
     return (
       <main className="empty-state">
@@ -528,16 +824,22 @@ function App() {
           </div>
           <div>
             <p>Paper Intelligence Hub</p>
-            <h1>推荐、搜索广告与大模型论文库</h1>
+            <h1>推荐 · 搜索广告 · 大模型研究工作台</h1>
+            <div className="brand-subline">
+              <span>
+                <CalendarClock size={15} />
+                {formatTime(data.generatedAt)}
+              </span>
+              <span>{dateRange}</span>
+              <span>{formatNumber(data.stats.uniqueTotal || data.stats.rawFetched || data.stats.total)} 候选去重</span>
+            </div>
           </div>
         </div>
         <div className="header-actions">
-          <div className="header-meta">
-            <span>
-              <CalendarClock size={16} />
-              {formatTime(data.generatedAt)}
-            </span>
-            <span>{dateRange}</span>
+          <div className="sync-card">
+            <span>自动更新</span>
+            <strong>{data.mode === "augment" ? "已增强" : "增量同步"}</strong>
+            <em>{data.detailShards?.length ?? 0} 个详情分片</em>
           </div>
           <div className="export-row">
             {exportLinks.map((item) => (
@@ -550,25 +852,30 @@ function App() {
         </div>
       </header>
 
-      <section className="stat-strip">
+      <section className="stat-strip" data-testid="metric-strip">
         <div className="stat-cell primary">
-          <span>论文库</span>
-          <strong>{data.stats.total}</strong>
-          <em>覆盖 2023 至今</em>
+          <span>总论文</span>
+          <strong>{formatNumber(data.stats.total)}</strong>
+          <em>{dateRange}</em>
         </div>
         <div className="stat-cell">
-          <span>候选抓取</span>
-          <strong>{data.stats.rawFetched ?? data.stats.total}</strong>
-          <em>{data.stats.networkFetched ? `本次新增候选 ${data.stats.networkFetched}` : "多源聚合"}</em>
+          <span>当前匹配</span>
+          <strong>{formatNumber(filteredPapers.length)}</strong>
+          <em>{activeTrackMeta?.label || activeTopicMeta?.label || "全方向"}</em>
         </div>
         <div className="stat-cell">
-          <span>主题</span>
-          <strong>{data.topics?.filter((topic) => topic.count > 0).length ?? 0}</strong>
-          <em>自动归类</em>
+          <span>PDF 覆盖</span>
+          <strong>{formatNumber(pdfCount)}</strong>
+          <em>{Math.round((pdfCount / Math.max(1, data.stats.total)) * 100)}% 可直接读</em>
+        </div>
+        <div className="stat-cell">
+          <span>来源</span>
+          <strong>{formatNumber(sourceCount)}</strong>
+          <em>{data.stats.networkFetched ? `新增候选 ${formatNumber(data.stats.networkFetched)}` : "OpenAlex / arXiv / S2"}</em>
         </div>
         <button className={`stat-cell track-stat ${statusFilter === "favorite" ? "active" : ""}`} onClick={() => setStatusFilter("favorite")} type="button">
           <span>收藏</span>
-          <strong>{userStats.favorite}</strong>
+          <strong>{formatNumber(userStats.favorite)}</strong>
           <em>本地标记</em>
         </button>
         {data.stats.byTrack.map((item) => (
@@ -579,7 +886,7 @@ function App() {
             type="button"
           >
             <span>{item.label}</span>
-            <strong>{item.count}</strong>
+            <strong>{formatNumber(item.count)}</strong>
             <em>方向论文</em>
           </button>
         ))}
@@ -622,10 +929,10 @@ function App() {
         </label>
         <div className="active-context">
           <Target size={16} />
-          {activeTrackMeta?.label || "全方向"}
-          {activeTopicMeta ? ` · ${activeTopicMeta.label}` : ""}
-          {activeYear !== "all" ? ` · ${activeYear}` : ""}
-          {activeMonth !== "all" ? ` · ${monthLabel(activeMonth)}` : ""}
+          <span>{activeTrackMeta?.label || "全方向"}</span>
+          {activeTopicMeta && <span>{activeTopicMeta.label}</span>}
+          {activeYear !== "all" && <span>{activeYear}</span>}
+          {activeMonth !== "all" && <span>{monthLabel(activeMonth)}</span>}
         </div>
         <button className="ghost-button" onClick={clearFilters} type="button">
           <X size={16} />
@@ -635,84 +942,100 @@ function App() {
 
       <section className="workspace-grid">
         <aside className="insight-panel">
-          <div className="panel-title">
-            <CalendarDays size={18} />
-            时间线
-          </div>
-          <button
-            className={`timeline-all ${activeYear === "all" && activeMonth === "all" ? "active" : ""}`}
-            onClick={() => {
-              setActiveYear("all");
-              setActiveMonth("all");
-            }}
-            type="button"
-          >
-            <span>全部年份</span>
-            <b>{data.stats.total}</b>
-          </button>
-          <div className="year-list">
-            {data.timeline?.years.map((item) => (
-              <button
-                className={`year-row ${activeYear === item.year ? "active" : ""}`}
-                key={item.year}
-                onClick={() => {
-                  setActiveYear(item.year);
-                  setActiveMonth("all");
-                }}
-                type="button"
-              >
-                <span>{item.year}</span>
-                <i style={{ width: `${Math.max(8, (item.count / data.stats.total) * 100)}%` }} />
-                <b>{item.count}</b>
-              </button>
-            ))}
-          </div>
-          <div className="month-list">
-            {monthsForActiveYear.slice(0, activeYear === "all" ? 20 : 14).map((item) => (
-              <button
-                className={`month-row ${activeMonth === item.month ? "active" : ""}`}
-                key={item.month}
-                onClick={() => {
-                  setActiveYear(item.year);
-                  setActiveMonth(item.month);
-                }}
-                type="button"
-              >
-                <span>{item.year === activeYear ? monthLabel(item.month) : item.month}</span>
-                <b>{item.count}</b>
-              </button>
-            ))}
+          <div className="panel-card scope-card">
+            <div className="panel-title compact">
+              <Gauge size={16} />
+              当前视图
+            </div>
+            <strong>{formatNumber(filteredPapers.length)} 篇</strong>
+            <p>
+              {activeTrackMeta?.label || "全部方向"}
+              {activeTopicMeta ? ` / ${activeTopicMeta.label}` : ""}
+              {latestTrend ? ` / 最新月 ${latestTrend.month}` : ""}
+            </p>
+            <div className="scope-meta">
+              <span>已读 {formatNumber(userStats.read)}</span>
+              <span>复现 {formatNumber(userStats.reproduce)}</span>
+            </div>
           </div>
 
-          <div className="topic-panel">
+          <div className="panel-card">
+            <div className="panel-title">
+              <CalendarDays size={18} />
+              时间线
+            </div>
+            <button
+              className={`timeline-all ${activeYear === "all" && activeMonth === "all" ? "active" : ""}`}
+              onClick={() => {
+                setActiveYear("all");
+                setActiveMonth("all");
+              }}
+              type="button"
+            >
+              <span>全部年份</span>
+              <b>{formatNumber(data.stats.total)}</b>
+            </button>
+            <div className="year-list">
+              {data.timeline?.years.map((item) => (
+                <button
+                  className={`year-row ${activeYear === item.year ? "active" : ""}`}
+                  key={item.year}
+                  onClick={() => {
+                    setActiveYear(item.year);
+                    setActiveMonth("all");
+                  }}
+                  type="button"
+                >
+                  <span>{item.year}</span>
+                  <i style={{ width: `${Math.max(8, (item.count / data.stats.total) * 100)}%` }} />
+                  <b>{formatNumber(item.count)}</b>
+                </button>
+              ))}
+            </div>
+            <div className="month-list">
+              {monthsForActiveYear.slice(0, activeYear === "all" ? 18 : 14).map((item) => (
+                <button
+                  className={`month-row ${activeMonth === item.month ? "active" : ""}`}
+                  key={item.month}
+                  onClick={() => {
+                    setActiveYear(item.year);
+                    setActiveMonth(item.month);
+                  }}
+                  type="button"
+                >
+                  <span>{item.year === activeYear ? monthLabel(item.month) : item.month}</span>
+                  <b>{formatNumber(item.count)}</b>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel-card topic-panel">
             <div className="panel-title compact">
               <Layers3 size={16} />
               研究主题
             </div>
             <button className={`topic-chip ${activeTopic === "all" ? "active" : ""}`} onClick={() => setActiveTopic("all")} type="button">
               全部主题
-              <b>{data.stats.total}</b>
+              <b>{formatNumber(data.stats.total)}</b>
             </button>
-            {data.topics
-              ?.filter((topic) => topic.count > 0)
-              .sort((a, b) => b.count - a.count)
-              .map((topic) => (
-                <button
-                  className={`topic-chip ${activeTopic === topic.id ? "active" : ""}`}
-                  key={topic.id}
-                  onClick={() => setActiveTopic(activeTopic === topic.id ? "all" : topic.id)}
-                  style={{ "--accent": topic.accent } as CSSProperties}
-                  type="button"
-                >
-                  {topic.label}
-                  <b>{topic.count}</b>
-                </button>
-              ))}
+            {topicOptions.map((topic) => (
+              <button
+                className={`topic-chip ${activeTopic === topic.id ? "active" : ""}`}
+                key={topic.id}
+                onClick={() => setActiveTopic(activeTopic === topic.id ? "all" : topic.id)}
+                style={{ "--accent": topic.accent } as CSSProperties}
+                type="button"
+              >
+                {topic.label}
+                <b>{formatNumber(topic.count)}</b>
+              </button>
+            ))}
           </div>
 
-          <div className="trend-panel">
+          <div className="panel-card trend-panel">
             <div className="panel-title compact">
-              <BarChart3 size={16} />
+              <LineChart size={16} />
               近 18 个月趋势
             </div>
             <div className="trend-bars">
@@ -747,7 +1070,7 @@ function App() {
             </div>
           </div>
 
-          <div className="keyword-box">
+          <div className="panel-card keyword-box">
             <div className="panel-title compact">
               <Sparkles size={16} />
               当前热点
@@ -761,244 +1084,86 @@ function App() {
           </div>
         </aside>
 
-        <div className="content-grid">
-          <section className="paper-board">
-            <div className="board-head">
-              <div>
-                <p>论文矩阵</p>
-                <h2>{filteredPapers.length} 篇匹配论文</h2>
+        <section className="paper-board">
+          <div className="board-head">
+            <div>
+              <p>Research Queue</p>
+              <h2>{formatNumber(filteredPapers.length)} 篇匹配论文</h2>
+            </div>
+            <div className="board-count">
+              <Rows3 size={15} />
+              显示 {formatNumber(visiblePapers.length)} / {formatNumber(filteredPapers.length)}
+            </div>
+          </div>
+
+          {visiblePapers.length === 0 ? <div className="empty-list">没有匹配的论文</div> : <div className="paper-list">{visiblePapers.map(renderPaperRow)}</div>}
+
+          {filteredPapers.length > displayLimit && (
+            <button className="load-more" onClick={() => setDisplayLimit((value) => value + 180)} type="button">
+              加载更多
+            </button>
+          )}
+        </section>
+
+        {selectedPaper && (
+          <aside className="detail-panel" data-testid="detail-panel" style={{ "--accent": selectedPaper.accent } as CSSProperties}>
+            <div className="detail-head">
+              <div className="detail-kicker">
+                <span className="track-label">{selectedPaper.trackLabel}</span>
+                <span className="quality-pill">
+                  质量 {selectedPaper.quality?.score ?? "-"} · {selectedPaper.quality?.level || "观察"}
+                </span>
               </div>
-              <div className="board-count">
-                显示 {visiblePapers.length} / {filteredPapers.length}
+              <h2>{selectedPaper.title}</h2>
+              <p>{authorLine(selectedPaper.authors)}</p>
+              <div className="detail-meta">
+                <span>{formatDate(selectedPaper.published)}</span>
+                <span>{sourceKind(selectedPaper)}</span>
+                <span>#{selectedPosition || "-"}</span>
+              </div>
+              <div className="detail-progress" style={{ "--score": `${Math.min(100, Math.round(qualityScore(selectedPaper)))}%` } as CSSProperties}>
+                <span>质量信号</span>
+                <i />
+              </div>
+              <div className="detail-actions">
+                <button className={selectedState.favorite ? "active" : ""} onClick={() => toggleFavorite(selectedPaper.id)} type="button">
+                  <Star size={15} />
+                  {selectedState.favorite ? "已收藏" : "收藏"}
+                </button>
+                <select
+                  value={selectedState.status || ""}
+                  onChange={(event) => setPaperStatus(selectedPaper.id, (event.target.value || undefined) as UserStatus | undefined)}
+                >
+                  <option value="">未标记</option>
+                  {statusOptions.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {visiblePapers.length === 0 ? (
-              <div className="empty-list">没有匹配的论文</div>
-            ) : (
-              <div className="paper-grid">
-                {visiblePapers.map((paper) => {
-                  const state = userState[paper.id] || {};
-                  const topics = paper.topics?.map((id) => data.topics?.find((topic) => topic.id === id)).filter(Boolean) as Topic[];
-                  return (
-                    <article
-                      className={`paper-card ${selectedPaper?.id === paper.id ? "selected" : ""}`}
-                      key={paper.id}
-                      onClick={() => setSelectedId(paper.id)}
-                      style={{ "--accent": paper.accent } as CSSProperties}
-                    >
-                      <div className="paper-card-top">
-                        <span>{paper.trackLabel}</span>
-                        <b>{formatDate(paper.published)}</b>
-                      </div>
-                      <h3>{highlightText(paper.title, query)}</h3>
-                      <p>{paper.summary}</p>
-                      <div className="mini-topic-row">
-                        {topics.slice(0, 3).map((topic) => (
-                          <span key={topic.id} style={{ "--accent": topic.accent } as CSSProperties}>
-                            {topic.label}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="paper-foot">
-                        <span>{paper.source || "OpenAlex"}</span>
-                        <span>质量 {paper.quality?.score ?? "-"}</span>
-                      </div>
-                      <div className="paper-actions">
-                        <button
-                          className={state.favorite ? "active" : ""}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleFavorite(paper.id);
-                          }}
-                          type="button"
-                          title="收藏"
-                        >
-                          <Star size={14} />
-                        </button>
-                        {statusOptions.slice(0, 4).map((item) => (
-                          <button
-                            className={state.status === item.id ? "active" : ""}
-                            key={item.id}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setPaperStatus(paper.id, state.status === item.id ? undefined : item.id);
-                            }}
-                            type="button"
-                            title={item.label}
-                          >
-                            {item.icon}
-                          </button>
-                        ))}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
+            <div className="keyword-row">
+              {selectedPaper.keywords.map((keyword) => (
+                <button key={keyword} onClick={() => setQuery(keyword)} type="button">
+                  {keyword}
+                </button>
+              ))}
+            </div>
 
-            {filteredPapers.length > displayLimit && (
-              <button className="load-more" onClick={() => setDisplayLimit((value) => value + 180)} type="button">
-                加载更多
-              </button>
-            )}
-          </section>
+            <div className="detail-tabs">
+              {detailTabs.map((item) => (
+                <button className={detailTab === item.id ? "active" : ""} key={item.id} onClick={() => setDetailTab(item.id)} type="button">
+                  {item.icon}
+                  {item.label}
+                </button>
+              ))}
+            </div>
 
-          {selectedPaper && (
-            <aside className="detail-panel" style={{ "--accent": selectedPaper.accent } as CSSProperties}>
-              <div className="detail-head">
-                <div className="detail-kicker">
-                  <span className="track-label">{selectedPaper.trackLabel}</span>
-                  <span className="quality-pill">质量 {selectedPaper.quality?.score ?? "-"} · {selectedPaper.quality?.level || "观察"}</span>
-                </div>
-                <h2>{selectedPaper.title}</h2>
-                <p>{selectedPaper.authors.slice(0, 8).join(", ") || "Unknown authors"}</p>
-                <div className="detail-meta">
-                  <span>{formatDate(selectedPaper.published)}</span>
-                  <span>{selectedPaper.source || data.source}</span>
-                  <span>已读 {userStats.read}</span>
-                  <span>复现 {userStats.reproduce}</span>
-                </div>
-                <div className="detail-actions">
-                  <button className={selectedState.favorite ? "active" : ""} onClick={() => toggleFavorite(selectedPaper.id)} type="button">
-                    <Star size={15} />
-                    {selectedState.favorite ? "已收藏" : "收藏"}
-                  </button>
-                  <select
-                    value={selectedState.status || ""}
-                    onChange={(event) => setPaperStatus(selectedPaper.id, (event.target.value || undefined) as UserStatus | undefined)}
-                  >
-                    <option value="">未标记</option>
-                    {statusOptions.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="link-row">
-                  <a href={selectedPaper.links.abstract} target="_blank" rel="noreferrer">
-                    摘要
-                    <ArrowUpRight size={15} />
-                  </a>
-                  <a href={selectedPaper.links.pdf} target="_blank" rel="noreferrer">
-                    PDF
-                    <ArrowUpRight size={15} />
-                  </a>
-                </div>
-              </div>
-
-              <div className="keyword-row">
-                {selectedPaper.keywords.map((keyword) => (
-                  <button key={keyword} onClick={() => setQuery(keyword)} type="button">
-                    {keyword}
-                  </button>
-                ))}
-              </div>
-
-              {selectedPaper.deconstruction && selectedPaper.codeBlueprint ? (
-                <>
-                  <section className="detail-section">
-                    <h3>
-                      <Target size={16} />
-                      问题
-                    </h3>
-                    <p>{selectedPaper.deconstruction.problem}</p>
-                  </section>
-
-                  <section className="detail-section">
-                    <h3>
-                      <GitBranch size={16} />
-                      方法
-                    </h3>
-                    <p>{selectedPaper.deconstruction.method}</p>
-                  </section>
-
-                  <section className="detail-section">
-                    <h3>
-                      <Zap size={16} />
-                      贡献
-                    </h3>
-                    <ul>
-                      {selectedPaper.deconstruction.contributions.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-
-                  <section className="signal-grid">
-                    <div>
-                      <h3>方法信号</h3>
-                      {(selectedPaper.deepDive?.methodSignals || []).map((item) => (
-                        <span key={item}>{item}</span>
-                      ))}
-                    </div>
-                    <div>
-                      <h3>数据/指标</h3>
-                      {[...(selectedPaper.deepDive?.datasetSignals || []), ...(selectedPaper.deepDive?.metricSignals || [])].slice(0, 8).map((item) => (
-                        <span key={item}>{item}</span>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="detail-section">
-                    <h3>
-                      <FlaskConical size={16} />
-                      实验检查
-                    </h3>
-                    <div className="check-list">
-                      {selectedPaper.deconstruction.experimentChecklist.map((item) => (
-                        <span key={item}>{item}</span>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="detail-section">
-                    <h3>
-                      <BookOpenText size={16} />
-                      复现路径
-                    </h3>
-                    <ul>
-                      {(selectedPaper.deepDive?.reproducePlan || []).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-
-                  <section className="quality-box">
-                    <h3>质量依据</h3>
-                    {(selectedPaper.quality?.reasons || []).map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
-                  </section>
-
-                  <section className="code-panel">
-                    <div className="code-head">
-                      <h3>
-                        <Code2 size={16} />
-                        {selectedPaper.codeBlueprint.title}
-                      </h3>
-                      <button onClick={copyCode} type="button">
-                        <Copy size={15} />
-                        {copied ? "已复制" : "复制"}
-                      </button>
-                    </div>
-                    <p>{selectedPaper.codeBlueprint.note}</p>
-                    <pre>
-                      <code>{selectedPaper.codeBlueprint.code}</code>
-                    </pre>
-                  </section>
-                </>
-              ) : (
-                <section className="detail-loading">
-                  <RefreshCcw className={detailLoadingPath ? "spin" : ""} size={18} />
-                  <h3>{detailError || "正在加载论文拆解与代码"}</h3>
-                  <p>列表索引已加载，完整问题拆解、实验检查和代码骨架会按详情分片按需加载。</p>
-                </section>
-              )}
-            </aside>
-          )}
-        </div>
+            <div className="detail-body">{renderDetailContent()}</div>
+          </aside>
+        )}
       </section>
 
       {data.stats.errors.length > 0 && (
