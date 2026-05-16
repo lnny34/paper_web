@@ -9,7 +9,10 @@ import {
   CalendarClock,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Code2,
+  Command,
   Copy,
   Database,
   Download,
@@ -25,6 +28,7 @@ import {
   RefreshCcw,
   Rows3,
   Search,
+  SlidersHorizontal,
   Sparkles,
   Star,
   Target,
@@ -494,6 +498,16 @@ function App() {
   const pdfCount = useMemo(() => data?.papers.filter((paper) => Boolean(paper.links?.pdf)).length ?? 0, [data]);
   const sourceCount = data?.stats.bySource?.length ?? 0;
   const latestTrend = recentTrendMonths[recentTrendMonths.length - 1];
+  const coverageRate = Math.round((pdfCount / Math.max(1, data?.stats.total ?? 1)) * 100);
+  const activeFilterCount = [
+    activeTrack !== "all",
+    activeYear !== "all",
+    activeMonth !== "all",
+    activeTopic !== "all",
+    sourceFilter !== "all",
+    statusFilter !== "all",
+    query.trim().length > 0,
+  ].filter(Boolean).length;
 
   function clearFilters() {
     setActiveTrack("all");
@@ -527,6 +541,13 @@ function App() {
       else next[id] = item;
       return next;
     });
+  }
+
+  function selectAdjacentPaper(offset: number) {
+    if (!filteredPapers.length) return;
+    const currentIndex = Math.max(0, filteredPapers.findIndex((paper) => paper.id === selectedPaper?.id));
+    const nextIndex = Math.min(filteredPapers.length - 1, Math.max(0, currentIndex + offset));
+    setSelectedId(filteredPapers[nextIndex].id);
   }
 
   async function copyCode() {
@@ -852,44 +873,76 @@ function App() {
         </div>
       </header>
 
-      <section className="stat-strip" data-testid="metric-strip">
-        <div className="stat-cell primary">
-          <span>总论文</span>
-          <strong>{formatNumber(data.stats.total)}</strong>
-          <em>{dateRange}</em>
+      <section className="research-console" data-testid="metric-strip">
+        <div className="console-main">
+          <div className="console-kicker">
+            <Command size={15} />
+            Research Command Center
+          </div>
+          <div className="console-title-row">
+            <strong>{formatNumber(filteredPapers.length)}</strong>
+            <div>
+              <span>当前可读论文</span>
+              <p>
+                {activeFilterCount ? `${activeFilterCount} 个筛选条件` : "全库视图"} / {dateRange}
+              </p>
+            </div>
+          </div>
+          <div className="console-metrics">
+            <div>
+              <span>总论文</span>
+              <b>{formatNumber(data.stats.total)}</b>
+            </div>
+            <div>
+              <span>PDF 覆盖</span>
+              <b>{coverageRate}%</b>
+            </div>
+            <div>
+              <span>数据源</span>
+              <b>{formatNumber(sourceCount)}</b>
+            </div>
+            <div>
+              <span>详情分片</span>
+              <b>{formatNumber(data.detailShards?.length ?? 0)}</b>
+            </div>
+          </div>
         </div>
-        <div className="stat-cell">
-          <span>当前匹配</span>
-          <strong>{formatNumber(filteredPapers.length)}</strong>
-          <em>{activeTrackMeta?.label || activeTopicMeta?.label || "全方向"}</em>
+
+        <div className="track-lane">
+          <div className="lane-head">
+            <span>
+              <SlidersHorizontal size={15} />
+              方向筛选
+            </span>
+            <button className={statusFilter === "favorite" ? "active" : ""} onClick={() => setStatusFilter(statusFilter === "favorite" ? "all" : "favorite")} type="button">
+              <Star size={14} />
+              收藏 {formatNumber(userStats.favorite)}
+            </button>
+          </div>
+          <div className="track-pills">
+            <button className={activeTrack === "all" ? "active" : ""} onClick={() => setActiveTrack("all")} type="button">
+              <span>全部方向</span>
+              <b>{formatNumber(data.stats.total)}</b>
+              <i style={{ width: "100%" }} />
+            </button>
+            {data.stats.byTrack.map((item) => {
+              const track = data.tracks.find((trackItem) => trackItem.id === item.id);
+              return (
+                <button
+                  className={activeTrack === item.id ? "active" : ""}
+                  key={item.id}
+                  onClick={() => setActiveTrack(activeTrack === item.id ? "all" : item.id)}
+                  style={{ "--accent": track?.accent || "#2f7d67", "--share": `${Math.max(8, (item.count / data.stats.total) * 100)}%` } as CSSProperties}
+                  type="button"
+                >
+                  <span>{item.label}</span>
+                  <b>{formatNumber(item.count)}</b>
+                  <i />
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="stat-cell">
-          <span>PDF 覆盖</span>
-          <strong>{formatNumber(pdfCount)}</strong>
-          <em>{Math.round((pdfCount / Math.max(1, data.stats.total)) * 100)}% 可直接读</em>
-        </div>
-        <div className="stat-cell">
-          <span>来源</span>
-          <strong>{formatNumber(sourceCount)}</strong>
-          <em>{data.stats.networkFetched ? `新增候选 ${formatNumber(data.stats.networkFetched)}` : "OpenAlex / arXiv / S2"}</em>
-        </div>
-        <button className={`stat-cell track-stat ${statusFilter === "favorite" ? "active" : ""}`} onClick={() => setStatusFilter("favorite")} type="button">
-          <span>收藏</span>
-          <strong>{formatNumber(userStats.favorite)}</strong>
-          <em>本地标记</em>
-        </button>
-        {data.stats.byTrack.map((item) => (
-          <button
-            className={`stat-cell track-stat ${activeTrack === item.id ? "active" : ""}`}
-            key={item.id}
-            onClick={() => setActiveTrack(activeTrack === item.id ? "all" : item.id)}
-            type="button"
-          >
-            <span>{item.label}</span>
-            <strong>{formatNumber(item.count)}</strong>
-            <em>方向论文</em>
-          </button>
-        ))}
       </section>
 
       <section className="control-bar">
@@ -1141,6 +1194,31 @@ function App() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="reader-toolbar">
+                <button disabled={selectedPosition <= 1} onClick={() => selectAdjacentPaper(-1)} type="button">
+                  <ChevronLeft size={15} />
+                  上一篇
+                </button>
+                <span>
+                  {formatNumber(selectedPosition || 0)} / {formatNumber(filteredPapers.length)}
+                </span>
+                <button disabled={selectedPosition >= filteredPapers.length} onClick={() => selectAdjacentPaper(1)} type="button">
+                  下一篇
+                  <ChevronRight size={15} />
+                </button>
+                {selectedPaper.links.abstract && (
+                  <a href={selectedPaper.links.abstract} target="_blank" rel="noreferrer">
+                    摘要
+                    <ArrowUpRight size={15} />
+                  </a>
+                )}
+                {selectedPaper.links.pdf && (
+                  <a href={selectedPaper.links.pdf} target="_blank" rel="noreferrer">
+                    PDF
+                    <ArrowUpRight size={15} />
+                  </a>
+                )}
               </div>
             </div>
 
