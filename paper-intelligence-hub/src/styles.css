@@ -815,6 +815,147 @@ mark {
   gap: 8px;
 }
 
+.paper-table {
+  overflow: hidden;
+  border: 1px solid rgba(23, 33, 31, 0.1);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.paper-table-head,
+.paper-table-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 62px 96px;
+  gap: 10px;
+  align-items: center;
+}
+
+.paper-table-head {
+  min-height: 34px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(23, 33, 31, 0.1);
+  background: #f6f7f2;
+  color: #68736e;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.paper-table-body {
+  display: grid;
+}
+
+.paper-table-row {
+  --accent: #2f7d67;
+  --score: 50%;
+  min-height: 68px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(23, 33, 31, 0.08);
+  border-left: 3px solid transparent;
+  color: #17211f;
+  cursor: pointer;
+}
+
+.paper-table-row:last-child {
+  border-bottom: 0;
+}
+
+.paper-table-row:hover,
+.paper-table-row.selected {
+  border-left-color: var(--accent);
+  background: #fbfcf8;
+}
+
+.table-rank {
+  color: #7a8580;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.table-paper-main {
+  min-width: 0;
+}
+
+.table-paper-main h3 {
+  margin: 0;
+  color: #17211f;
+  font-size: 14px;
+  line-height: 1.32;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-paper-main div {
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  color: #68736e;
+  font-size: 11px;
+  font-weight: 850;
+  overflow: hidden;
+}
+
+.table-paper-main span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-paper-main span:first-child {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--accent) 76%, #17211f);
+}
+
+.table-score {
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+}
+
+.table-score strong {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.table-score i {
+  width: 42px;
+  height: 5px;
+  display: block;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--accent) var(--score), rgba(23, 33, 31, 0.1) var(--score)),
+    rgba(23, 33, 31, 0.1);
+}
+
+.table-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 22px);
+  gap: 4px;
+  justify-content: end;
+}
+
+.table-actions button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(23, 33, 31, 0.12);
+  border-radius: 6px;
+  background: #fff;
+  color: #5f6d67;
+}
+
+.table-actions button.active {
+  border-color: #17211f;
+  background: #17211f;
+  color: #fff;
+}
+
 .paper-row {
   --accent: #2f7d67;
   --score: 50%;

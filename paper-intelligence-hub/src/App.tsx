@@ -735,6 +735,63 @@ function App() {
     );
   }
 
+  function renderPaperTableRow(paper: Paper, index: number) {
+    const state = userState[paper.id] || {};
+    const score = Math.min(100, Math.max(0, Math.round(qualityScore(paper))));
+
+    return (
+      <article
+        className={`paper-table-row ${selectedPaper?.id === paper.id ? "selected" : ""}`}
+        data-testid="paper-row"
+        key={paper.id}
+        onClick={() => setSelectedId(paper.id)}
+        style={{ "--accent": paper.accent, "--score": `${score}%` } as CSSProperties}
+      >
+        <div className="table-rank">{index + 1}</div>
+        <div className="table-paper-main">
+          <h3>{highlightText(paper.title, query)}</h3>
+          <div>
+            <span>{paper.trackLabel}</span>
+            <span>{formatDate(paper.published)}</span>
+            <span>{sourceKind(paper)}</span>
+            <span>{paperSignal(paper)}</span>
+          </div>
+        </div>
+        <div className="table-score">
+          <strong>{score}</strong>
+          <i />
+        </div>
+        <div className="table-actions">
+          <button
+            className={state.favorite ? "active" : ""}
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleFavorite(paper.id);
+            }}
+            type="button"
+            title="收藏"
+          >
+            <Star size={13} />
+          </button>
+          {statusOptions.slice(0, 3).map((item) => (
+            <button
+              className={state.status === item.id ? "active" : ""}
+              key={item.id}
+              onClick={(event) => {
+                event.stopPropagation();
+                setPaperStatus(paper.id, state.status === item.id ? undefined : item.id);
+              }}
+              type="button"
+              title={item.label}
+            >
+              {item.icon}
+            </button>
+          ))}
+        </div>
+      </article>
+    );
+  }
+
   function renderDetailContent() {
     if (!selectedPaper) return null;
 
@@ -1287,7 +1344,21 @@ function App() {
             </div>
           </div>
 
-          {visiblePapers.length === 0 ? <div className="empty-list">没有匹配的论文</div> : <div className="paper-list">{visiblePapers.map(renderPaperRow)}</div>}
+          {visiblePapers.length === 0 ? (
+            <div className="empty-list">没有匹配的论文</div>
+          ) : densityMode === "compact" ? (
+            <div className="paper-table">
+              <div className="paper-table-head">
+                <span>#</span>
+                <span>论文</span>
+                <span>质量</span>
+                <span>操作</span>
+              </div>
+              <div className="paper-table-body">{visiblePapers.map(renderPaperTableRow)}</div>
+            </div>
+          ) : (
+            <div className="paper-list">{visiblePapers.map(renderPaperRow)}</div>
+          )}
 
           {filteredPapers.length > displayLimit && (
             <button className="load-more" onClick={() => setDisplayLimit((value) => value + 180)} type="button">
