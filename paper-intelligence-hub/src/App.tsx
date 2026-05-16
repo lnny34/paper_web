@@ -536,6 +536,17 @@ function App() {
     query.trim().length > 0,
   ].filter(Boolean).length;
 
+  const timelineYears = useMemo(() => [...(data?.timeline?.years ?? [])].sort((a, b) => Number(a.year) - Number(b.year)), [data]);
+  const maxTimelineYearCount = Math.max(1, ...timelineYears.map((item) => item.count));
+  const ribbonMonths = useMemo(() => {
+    const months = activeYear === "all" ? data?.timeline?.months ?? [] : monthsForActiveYear;
+    return months.slice(-(activeYear === "all" ? 14 : 12));
+  }, [activeYear, data, monthsForActiveYear]);
+  const maxRibbonMonthCount = Math.max(1, ...ribbonMonths.map((item) => item.count));
+  const filteredPdfCount = useMemo(() => filteredPapers.filter((paper) => Boolean(paper.links?.pdf)).length, [filteredPapers]);
+  const filteredSourceCount = useMemo(() => new Set(filteredPapers.map((paper) => paper.source || sourceKind(paper))).size, [filteredPapers]);
+  const sourceStats = useMemo(() => [...(data?.stats.bySource ?? [])].sort((a, b) => b.count - a.count).slice(0, 4), [data]);
+
   const qualityPapers = useMemo(() => filteredPapers.filter((paper) => qualityScore(paper) >= 90), [filteredPapers]);
   const reproduceCandidates = useMemo(
     () =>
@@ -736,8 +747,10 @@ function App() {
   }
 
   function renderPaperTableRow(paper: Paper, index: number) {
+    if (!data) return null;
     const state = userState[paper.id] || {};
     const score = Math.min(100, Math.max(0, Math.round(qualityScore(paper))));
+    const topics = (paper.topics || []).map((id) => data.topics?.find((topic) => topic.id === id)).filter(Boolean).slice(0, 2) as Topic[];
 
     return (
       <article
@@ -750,10 +763,26 @@ function App() {
         <div className="table-rank">{index + 1}</div>
         <div className="table-paper-main">
           <h3>{highlightText(paper.title, query)}</h3>
-          <div>
+          <div className="table-meta-line">
             <span>{paper.trackLabel}</span>
             <span>{formatDate(paper.published)}</span>
             <span>{sourceKind(paper)}</span>
+            <span>{authorLine(paper.authors)}</span>
+          </div>
+          <div className="table-topic-line">
+            {topics.map((topic) => (
+              <button
+                key={topic.id}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setActiveTopic(activeTopic === topic.id ? "all" : topic.id);
+                }}
+                style={{ "--accent": topic.accent } as CSSProperties}
+                type="button"
+              >
+                {topic.label}
+              </button>
+            ))}
             <span>{paperSignal(paper)}</span>
           </div>
         </div>
@@ -1186,6 +1215,88 @@ function App() {
         </button>
       </section>
 
+      <section className="research-map" aria-label="2023 至今研究地图">
+        <div className="map-heading">
+          <span>
+            <CalendarDays size={17} />
+            2023 至今时间线
+          </span>
+          <strong>{dateRange}</strong>
+          <p>
+            当前筛选覆盖 {formatNumber(filteredPapers.length)} 篇论文，{formatNumber(filteredPdfCount)} 篇可直接访问 PDF，来自 {formatNumber(filteredSourceCount)} 个来源。
+          </p>
+        </div>
+
+        <div className="timeline-ribbon">
+          <div className="year-ribbon">
+            <button
+              className={activeYear === "all" && activeMonth === "all" ? "active" : ""}
+              onClick={() => {
+                setActiveYear("all");
+                setActiveMonth("all");
+              }}
+              type="button"
+            >
+              <span>全部</span>
+              <b>{formatNumber(data.stats.total)}</b>
+              <i style={{ width: "100%" }} />
+            </button>
+            {timelineYears.map((item) => (
+              <button
+                className={activeYear === item.year ? "active" : ""}
+                key={item.year}
+                onClick={() => {
+                  setActiveYear(item.year);
+                  setActiveMonth("all");
+                }}
+                type="button"
+              >
+                <span>{item.year}</span>
+                <b>{formatNumber(item.count)}</b>
+                <i style={{ width: `${Math.max(8, (item.count / maxTimelineYearCount) * 100)}%` }} />
+              </button>
+            ))}
+          </div>
+
+          <div className="month-ribbon">
+            {ribbonMonths.map((item) => (
+              <button
+                className={activeMonth === item.month ? "active" : ""}
+                key={item.month}
+                onClick={() => {
+                  setActiveYear(item.year);
+                  setActiveMonth(item.month);
+                }}
+                type="button"
+              >
+                <span>{activeYear === "all" ? item.month : monthLabel(item.month)}</span>
+                <i style={{ width: `${Math.max(8, (item.count / maxRibbonMonthCount) * 100)}%` }} />
+                <b>{formatNumber(item.count)}</b>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="map-health">
+          <div>
+            <span>强信号</span>
+            <b>{formatNumber(qualityPapers.length)}</b>
+          </div>
+          <div>
+            <span>复现候选</span>
+            <b>{formatNumber(reproduceCandidates.length)}</b>
+          </div>
+          <div className="source-stack">
+            {sourceStats.map((item) => (
+              <span key={item.source}>
+                {item.source}
+                <b>{formatNumber(item.count)}</b>
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className={`workspace-grid ${workspaceMode === "focus" ? "focus-mode" : ""}`}>
         {workspaceMode === "explore" && (
         <aside className="insight-panel">
@@ -1382,6 +1493,24 @@ function App() {
                 <span>{formatDate(selectedPaper.published)}</span>
                 <span>{sourceKind(selectedPaper)}</span>
                 <span>#{selectedPosition || "-"}</span>
+              </div>
+              <div className="detail-snapshot">
+                <div>
+                  <span>质量分</span>
+                  <b>{Math.round(qualityScore(selectedPaper))}</b>
+                </div>
+                <div>
+                  <span>相关性</span>
+                  <b>{selectedPaper.coreRelevanceScore ?? selectedPaper.relevanceScore ?? "-"}</b>
+                </div>
+                <div>
+                  <span>年份</span>
+                  <b>{selectedPaper.year || getYear(selectedPaper.published)}</b>
+                </div>
+                <div>
+                  <span>PDF</span>
+                  <b>{selectedPaper.links.pdf ? "有" : "无"}</b>
+                </div>
               </div>
               <div className="detail-brief-card">
                 <span>
