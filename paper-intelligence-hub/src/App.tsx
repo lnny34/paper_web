@@ -196,6 +196,7 @@ type SourceFilter = "all" | "pdf" | "arxiv" | "openalex";
 type StatusFilter = "all" | "favorite" | UserStatus;
 type DetailTab = "brief" | "reproduce" | "code" | "meta";
 type WorkspaceMode = "explore" | "focus";
+type DensityMode = "comfortable" | "compact";
 type InsightCard = {
   id: string;
   label: string;
@@ -341,6 +342,7 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("brief");
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("explore");
+  const [densityMode, setDensityMode] = useState<DensityMode>("comfortable");
   const [displayLimit, setDisplayLimit] = useState(180);
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -654,7 +656,7 @@ function App() {
 
     return (
       <article
-        className={`paper-row ${selectedPaper?.id === paper.id ? "selected" : ""}`}
+        className={`paper-row ${densityMode === "compact" ? "compact" : ""} ${selectedPaper?.id === paper.id ? "selected" : ""}`}
         data-testid="paper-row"
         key={paper.id}
         onClick={() => setSelectedId(paper.id)}
@@ -948,8 +950,9 @@ function App() {
           </div>
           <div>
             <p>Paper Intelligence Hub</p>
-            <h1>推荐 · 搜索广告 · 大模型研究工作台</h1>
+            <h1>AI 论文研究工作台</h1>
             <div className="brand-subline">
+              <span>推荐 / 搜索广告 / 大模型</span>
               <span>
                 <CalendarClock size={15} />
                 {formatTime(data.generatedAt)}
@@ -1115,6 +1118,10 @@ function App() {
         <button className={`mode-button ${workspaceMode === "focus" ? "active" : ""}`} onClick={() => setWorkspaceMode(workspaceMode === "focus" ? "explore" : "focus")} type="button">
           <Eye size={16} />
           {workspaceMode === "focus" ? "探索视图" : "专注阅读"}
+        </button>
+        <button className={`density-button ${densityMode === "compact" ? "active" : ""}`} onClick={() => setDensityMode(densityMode === "compact" ? "comfortable" : "compact")} type="button">
+          <Rows3 size={16} />
+          {densityMode === "compact" ? "舒适列表" : "紧凑列表"}
         </button>
         <button className="ghost-button" onClick={clearFilters} type="button">
           <X size={16} />

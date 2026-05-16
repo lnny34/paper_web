@@ -58,9 +58,9 @@ mark {
 .app-header {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
+  gap: 14px;
   align-items: stretch;
-  padding: 16px;
+  padding: 10px 12px;
   border: 1px solid rgba(23, 33, 31, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
@@ -69,14 +69,14 @@ mark {
 
 .brand-row {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: center;
   min-width: 0;
 }
 
 .brand-mark {
-  width: 52px;
-  height: 52px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -99,8 +99,8 @@ mark {
   max-width: 840px;
   margin: 0;
   color: #17211f;
-  font-size: 34px;
-  line-height: 1.08;
+  font-size: 24px;
+  line-height: 1.04;
   letter-spacing: 0;
 }
 
@@ -121,7 +121,7 @@ mark {
 }
 
 .brand-subline {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .brand-subline span,
@@ -130,6 +130,7 @@ mark {
 .active-context,
 .ghost-button,
 .mode-button,
+.density-button,
 .selectbox,
 .link-row a,
 .detail-actions button,
@@ -151,13 +152,13 @@ mark {
 
 .header-actions {
   display: grid;
-  grid-template-columns: minmax(340px, 380px);
-  gap: 10px;
+  grid-template-columns: minmax(330px, 380px);
+  gap: 8px;
   justify-items: stretch;
 }
 
 .sync-card {
-  min-height: 46px;
+  min-height: 34px;
   justify-content: space-between;
   padding: 0 12px;
   border-color: rgba(47, 125, 103, 0.2);
@@ -536,7 +537,14 @@ mark {
   color: #17211f;
 }
 
-.mode-button.active {
+.density-button {
+  height: 44px;
+  flex: 0 0 auto;
+  color: #17211f;
+}
+
+.mode-button.active,
+.density-button.active {
   border-color: #17211f;
   background: #17211f;
   color: #fff;
@@ -825,6 +833,13 @@ mark {
   cursor: pointer;
 }
 
+.paper-row.compact {
+  min-height: 104px;
+  grid-template-columns: 34px minmax(0, 1fr) 52px 62px;
+  gap: 10px;
+  padding: 10px;
+}
+
 .paper-row:hover,
 .paper-row.selected {
   border-color: rgba(23, 33, 31, 0.36);
@@ -880,6 +895,12 @@ mark {
   overflow: hidden;
 }
 
+.paper-row.compact h3 {
+  margin: 6px 0 5px;
+  font-size: 15px;
+  -webkit-line-clamp: 1;
+}
+
 .paper-row p {
   margin: 0;
   color: #5f6d67;
@@ -892,11 +913,19 @@ mark {
   overflow: hidden;
 }
 
+.paper-row.compact p {
+  -webkit-line-clamp: 1;
+}
+
 .paper-meta-row {
   margin-top: 10px;
   color: #7a8580;
   font-size: 12px;
   font-weight: 800;
+}
+
+.paper-row.compact .paper-meta-row {
+  margin-top: 7px;
 }
 
 .paper-meta-row > span {
@@ -923,6 +952,10 @@ mark {
   gap: 7px;
   flex-wrap: wrap;
   margin-top: 8px;
+}
+
+.paper-row.compact .paper-signal-row {
+  display: none;
 }
 
 .paper-signal-row span {
@@ -954,6 +987,10 @@ mark {
 .paper-score strong {
   font-size: 20px;
   line-height: 1;
+}
+
+.paper-row.compact .paper-score strong {
+  font-size: 18px;
 }
 
 .paper-score span {
@@ -988,6 +1025,15 @@ mark {
   border: 1px solid rgba(23, 33, 31, 0.12);
   background: #fff;
   color: #5f6d67;
+}
+
+.paper-row.compact .paper-actions button {
+  width: 28px;
+  height: 28px;
+}
+
+.paper-row.compact .paper-actions {
+  grid-template-columns: repeat(2, 28px);
 }
 
 .paper-actions button.active,
@@ -1621,6 +1667,8 @@ code {
   .searchbox,
   .active-context,
   .ghost-button,
+  .mode-button,
+  .density-button,
   .selectbox {
     width: 100%;
     max-width: none;
