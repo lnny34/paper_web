@@ -7,6 +7,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const dataDir = path.join(rootDir, "public", "data");
 const outputFile = path.join(dataDir, "papers.json");
+const indexFile = path.join(dataDir, "papers-index.json");
+const shardsDir = path.join(dataDir, "paper-shards");
 const exportsDir = path.join(dataDir, "exports");
 
 const OPENALEX_ENDPOINT = "https://api.openalex.org/works";
@@ -31,6 +33,7 @@ const HISTORICAL_DIRECT_ARXIV_PAGES_PER_QUERY = Number(process.env.PAPER_HISTORI
 const MAX_S2_PAGES_PER_QUERY = Number(process.env.PAPER_MAX_S2_PAGES_PER_QUERY || 1);
 const TOTAL_LIMIT = Number(process.env.PAPER_TOTAL_LIMIT || 12000);
 const PER_TRACK_LIMIT = Number(process.env.PAPER_PER_TRACK_LIMIT || TOTAL_LIMIT);
+const DETAIL_SHARD_SIZE = Number(process.env.PAPER_DETAIL_SHARD_SIZE || 300);
 const REQUEST_DELAY_MS = Number(process.env.PAPER_REQUEST_DELAY_MS || 90);
 const ARXIV_REQUEST_DELAY_MS = Number(process.env.PAPER_ARXIV_REQUEST_DELAY_MS || 1100);
 const S2_REQUEST_DELAY_MS = Number(process.env.PAPER_S2_REQUEST_DELAY_MS || 1200);
@@ -1390,6 +1393,107 @@ function escapeBibtex(value) {
   return String(value ?? "").replace(/[{}]/g, "").replace(/\n/g, " ");
 }
 
+function truncateText(value, maxLength = 420) {
+  const text = cleanText(value);
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).replace(/\s+\S*$/, "")}...`;
+}
+
+function buildPaperIndex(paper, detailPath) {
+  return {
+    id: paper.id,
+    title: paper.title,
+    authors: paper.authors,
+    published: paper.published,
+    updated: paper.updated,
+    year: paper.year,
+    month: paper.month,
+    summary: truncateText(paper.summary),
+    track: paper.track,
+    trackLabel: paper.trackLabel,
+    accent: paper.accent,
+    categories: paper.categories,
+    keywords: paper.keywords,
+    topics: paper.topics,
+    quality: paper.quality,
+    source: paper.source,
+    relevanceScore: paper.relevanceScore,
+    coreRelevanceScore: paper.coreRelevanceScore,
+    links: paper.links,
+    detailPath,
+  };
+}
+
+async function writeSplitData(data) {
+  await fs.mkdir(dataDir, { recursive: true });
+  await fs.rm(shardsDir, { recursive: true, force: true });
+  await fs.mkdir(shardsDir, { recursive: true });
+
+  const indexPapers = [];
+  const detailShards = [];
+
+  for (let offset = 0; offset < data.papers.length; offset += DETAIL_SHARD_SIZE) {
+    const shardIndex = Math.floor(offset / DETAIL_SHARD_SIZE);
+    const papers = data.papers.slice(offset, offset + DETAIL_SHARD_SIZE);
+    const shardName = `papers-${String(shardIndex).padStart(3, "0")}.json`;
+    const relativePath = `data/paper-shards/${shardName}`;
+    const absolutePath = path.join(shardsDir, shardName);
+
+    await fs.writeFile(
+      absolutePath,
+      `${JSON.stringify({ generatedAt: data.generatedAt, shard: shardIndex, count: papers.length, papers })}\n`,
+      "utf8",
+    );
+
+    detailShards.push({
+      path: relativePath,
+      count: papers.length,
+      firstPublished: papers[0]?.published,
+      lastPublished: papers.at(-1)?.published,
+    });
+    indexPapers.push(...papers.map((paper) => buildPaperIndex(paper, relativePath)));
+  }
+
+  const indexData = {
+    generatedAt: data.generatedAt,
+    total: indexPapers.length,
+    shardSize: DETAIL_SHARD_SIZE,
+    papers: indexPapers,
+  };
+  await fs.writeFile(indexFile, `${JSON.stringify(indexData)}\n`, "utf8");
+
+  const { papers: _papers, ...catalog } = data;
+  const catalogData = {
+    ...catalog,
+    index: "data/papers-index.json",
+    detailShards,
+    stats: {
+      ...catalog.stats,
+      indexTotal: indexPapers.length,
+      detailShardSize: DETAIL_SHARD_SIZE,
+      detailShardCount: detailShards.length,
+    },
+  };
+  await fs.writeFile(outputFile, `${JSON.stringify(catalogData)}\n`, "utf8");
+}
+
+async function readSplitPapers(catalog) {
+  const shards = normalizeArray(catalog?.detailShards);
+  if (!shards.length) return [];
+
+  const papers = [];
+  for (const shard of shards) {
+    const shardPath = path.join(rootDir, "public", shard.path || "");
+    try {
+      const payload = JSON.parse(await fs.readFile(shardPath, "utf8"));
+      papers.push(...normalizeArray(payload.papers));
+    } catch {
+      // Ignore missing shards so a partially generated catalog can still be repaired by the next fetch.
+    }
+  }
+  return papers;
+}
+
 async function writeExports(data) {
   await fs.mkdir(exportsDir, { recursive: true });
 
@@ -1445,7 +1549,13 @@ async function writeExports(data) {
 
 async function readExistingData() {
   try {
-    return JSON.parse(await fs.readFile(outputFile, "utf8"));
+    const payload = JSON.parse(await fs.readFile(outputFile, "utf8"));
+    if (Array.isArray(payload.papers)) {
+      return payload;
+    }
+
+    const papers = await readSplitPapers(payload);
+    return { ...payload, papers };
   } catch {
     return null;
   }
@@ -1640,6 +1750,7 @@ async function main() {
       bibtex: "data/exports/papers.bib",
       weekly: "data/exports/weekly.md",
       json: "data/papers.json",
+      index: "data/papers-index.json",
     },
     stats: {
       total: papers.length,
@@ -1670,12 +1781,11 @@ async function main() {
     papers,
   };
 
-  await fs.mkdir(path.dirname(outputFile), { recursive: true });
-  await fs.writeFile(outputFile, `${JSON.stringify(data, null, 2)}\n`, "utf8");
   await writeExports(data);
+  await writeSplitData(data);
 
   console.log(
-    `Wrote ${papers.length} papers (${uniquePapers.length} unique, ${fetched.length} fetched, ${networkFetched} network) for ${data.dateRange.from}..${data.dateRange.to}`,
+    `Wrote ${papers.length} papers in ${Math.ceil(papers.length / DETAIL_SHARD_SIZE)} detail shards (${uniquePapers.length} unique, ${fetched.length} fetched, ${networkFetched} network) for ${data.dateRange.from}..${data.dateRange.to}`,
   );
   if (errors.length) {
     console.warn("Completed with partial errors:", errors.slice(0, 8));

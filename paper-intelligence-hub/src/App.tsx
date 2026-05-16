@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   ArrowDownAZ,
@@ -76,6 +76,7 @@ type Paper = {
   topics?: string[];
   quality?: Quality;
   deepDive?: DeepDive;
+  detailPath?: string;
   source?: string;
   relevanceScore?: number;
   coreRelevanceScore?: number;
@@ -83,14 +84,14 @@ type Paper = {
     abstract: string;
     pdf: string;
   };
-  deconstruction: {
+  deconstruction?: {
     problem: string;
     method: string;
     contributions: string[];
     experimentChecklist: string[];
     engineeringUse: string;
   };
-  codeBlueprint: {
+  codeBlueprint?: {
     title: string;
     language: string;
     code: string;
@@ -148,7 +149,10 @@ type PaperData = {
     bibtex?: string;
     weekly?: string;
     json?: string;
+    index?: string;
   };
+  index?: string;
+  detailShards?: { path: string; count: number }[];
   stats: {
     total: number;
     rawFetched?: number;
@@ -161,6 +165,12 @@ type PaperData = {
     bySource?: { source: string; count: number }[];
     errors: { track: string; source?: string; query?: string; message: string }[];
   };
+  papers: Paper[];
+};
+
+type PaperIndexPayload = {
+  generatedAt: string;
+  total: number;
   papers: Paper[];
 };
 
@@ -275,6 +285,10 @@ function App() {
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [userState, setUserState] = useState<Record<string, PaperUserState>>({});
+  const [paperDetails, setPaperDetails] = useState<Record<string, Paper>>({});
+  const [detailLoadingPath, setDetailLoadingPath] = useState("");
+  const [detailError, setDetailError] = useState("");
+  const loadedDetailShards = useRef(new Set<string>());
 
   useEffect(() => {
     fetch(`${baseUrl}data/papers.json?v=${Date.now()}`, { cache: "no-store" })
@@ -282,9 +296,19 @@ function App() {
         if (!response.ok) throw new Error("论文数据尚未生成，请先运行 npm run fetch:papers");
         return response.json();
       })
-      .then((payload: PaperData) => {
-        setData(payload);
-        setSelectedId(payload.papers[0]?.id ?? null);
+      .then(async (payload: PaperData) => {
+        const indexPath = payload.index || payload.exports?.index || "data/papers-index.json";
+        const papers =
+          payload.papers ||
+          (await fetch(`${assetUrl(indexPath)}?v=${Date.now()}`, { cache: "no-store" })
+            .then((response) => {
+              if (!response.ok) throw new Error("论文索引尚未生成，请先运行 npm run augment:data");
+              return response.json();
+            })
+            .then((indexPayload: PaperIndexPayload) => indexPayload.papers));
+
+        setData({ ...payload, papers });
+        setSelectedId(papers[0]?.id ?? null);
       })
       .catch((error: Error) => setLoadError(error.message));
   }, []);
@@ -365,8 +389,37 @@ function App() {
 
   const selectedPaper = useMemo(() => {
     if (!data) return null;
-    return filteredPapers.find((paper) => paper.id === selectedId) ?? filteredPapers[0] ?? data.papers[0] ?? null;
-  }, [data, filteredPapers, selectedId]);
+    const indexPaper = filteredPapers.find((paper) => paper.id === selectedId) ?? filteredPapers[0] ?? data.papers[0] ?? null;
+    return indexPaper ? paperDetails[indexPaper.id] || indexPaper : null;
+  }, [data, filteredPapers, paperDetails, selectedId]);
+
+  useEffect(() => {
+    if (!data || !selectedPaper?.detailPath || selectedPaper.deconstruction || loadedDetailShards.current.has(selectedPaper.detailPath)) {
+      return;
+    }
+
+    const detailPath = selectedPaper.detailPath;
+    setDetailLoadingPath(detailPath);
+    setDetailError("");
+
+    fetch(`${assetUrl(detailPath)}?v=${data.generatedAt}`, { cache: "force-cache" })
+      .then((response) => {
+        if (!response.ok) throw new Error("论文详情分片加载失败");
+        return response.json();
+      })
+      .then((payload: { papers?: Paper[] }) => {
+        loadedDetailShards.current.add(detailPath);
+        setPaperDetails((current) => {
+          const next = { ...current };
+          (payload.papers || []).forEach((paper) => {
+            next[paper.id] = paper;
+          });
+          return next;
+        });
+      })
+      .catch((error: Error) => setDetailError(error.message))
+      .finally(() => setDetailLoadingPath((path) => (path === detailPath ? "" : path)));
+  }, [data, selectedPaper]);
 
   const visiblePapers = filteredPapers.slice(0, displayLimit);
 
@@ -433,7 +486,7 @@ function App() {
   }
 
   async function copyCode() {
-    if (!selectedPaper) return;
+    if (!selectedPaper?.codeBlueprint) return;
     await navigator.clipboard.writeText(selectedPaper.codeBlueprint.code);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
@@ -843,96 +896,106 @@ function App() {
                 ))}
               </div>
 
-              <section className="detail-section">
-                <h3>
-                  <Target size={16} />
-                  问题
-                </h3>
-                <p>{selectedPaper.deconstruction.problem}</p>
-              </section>
+              {selectedPaper.deconstruction && selectedPaper.codeBlueprint ? (
+                <>
+                  <section className="detail-section">
+                    <h3>
+                      <Target size={16} />
+                      问题
+                    </h3>
+                    <p>{selectedPaper.deconstruction.problem}</p>
+                  </section>
 
-              <section className="detail-section">
-                <h3>
-                  <GitBranch size={16} />
-                  方法
-                </h3>
-                <p>{selectedPaper.deconstruction.method}</p>
-              </section>
+                  <section className="detail-section">
+                    <h3>
+                      <GitBranch size={16} />
+                      方法
+                    </h3>
+                    <p>{selectedPaper.deconstruction.method}</p>
+                  </section>
 
-              <section className="detail-section">
-                <h3>
-                  <Zap size={16} />
-                  贡献
-                </h3>
-                <ul>
-                  {selectedPaper.deconstruction.contributions.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </section>
+                  <section className="detail-section">
+                    <h3>
+                      <Zap size={16} />
+                      贡献
+                    </h3>
+                    <ul>
+                      {selectedPaper.deconstruction.contributions.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
 
-              <section className="signal-grid">
-                <div>
-                  <h3>方法信号</h3>
-                  {(selectedPaper.deepDive?.methodSignals || []).map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
-                </div>
-                <div>
-                  <h3>数据/指标</h3>
-                  {[...(selectedPaper.deepDive?.datasetSignals || []), ...(selectedPaper.deepDive?.metricSignals || [])].slice(0, 8).map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
-                </div>
-              </section>
+                  <section className="signal-grid">
+                    <div>
+                      <h3>方法信号</h3>
+                      {(selectedPaper.deepDive?.methodSignals || []).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                    <div>
+                      <h3>数据/指标</h3>
+                      {[...(selectedPaper.deepDive?.datasetSignals || []), ...(selectedPaper.deepDive?.metricSignals || [])].slice(0, 8).map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </section>
 
-              <section className="detail-section">
-                <h3>
-                  <FlaskConical size={16} />
-                  实验检查
-                </h3>
-                <div className="check-list">
-                  {selectedPaper.deconstruction.experimentChecklist.map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
-                </div>
-              </section>
+                  <section className="detail-section">
+                    <h3>
+                      <FlaskConical size={16} />
+                      实验检查
+                    </h3>
+                    <div className="check-list">
+                      {selectedPaper.deconstruction.experimentChecklist.map((item) => (
+                        <span key={item}>{item}</span>
+                      ))}
+                    </div>
+                  </section>
 
-              <section className="detail-section">
-                <h3>
-                  <BookOpenText size={16} />
-                  复现路径
-                </h3>
-                <ul>
-                  {(selectedPaper.deepDive?.reproducePlan || []).map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </section>
+                  <section className="detail-section">
+                    <h3>
+                      <BookOpenText size={16} />
+                      复现路径
+                    </h3>
+                    <ul>
+                      {(selectedPaper.deepDive?.reproducePlan || []).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
 
-              <section className="quality-box">
-                <h3>质量依据</h3>
-                {(selectedPaper.quality?.reasons || []).map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </section>
+                  <section className="quality-box">
+                    <h3>质量依据</h3>
+                    {(selectedPaper.quality?.reasons || []).map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </section>
 
-              <section className="code-panel">
-                <div className="code-head">
-                  <h3>
-                    <Code2 size={16} />
-                    {selectedPaper.codeBlueprint.title}
-                  </h3>
-                  <button onClick={copyCode} type="button">
-                    <Copy size={15} />
-                    {copied ? "已复制" : "复制"}
-                  </button>
-                </div>
-                <p>{selectedPaper.codeBlueprint.note}</p>
-                <pre>
-                  <code>{selectedPaper.codeBlueprint.code}</code>
-                </pre>
-              </section>
+                  <section className="code-panel">
+                    <div className="code-head">
+                      <h3>
+                        <Code2 size={16} />
+                        {selectedPaper.codeBlueprint.title}
+                      </h3>
+                      <button onClick={copyCode} type="button">
+                        <Copy size={15} />
+                        {copied ? "已复制" : "复制"}
+                      </button>
+                    </div>
+                    <p>{selectedPaper.codeBlueprint.note}</p>
+                    <pre>
+                      <code>{selectedPaper.codeBlueprint.code}</code>
+                    </pre>
+                  </section>
+                </>
+              ) : (
+                <section className="detail-loading">
+                  <RefreshCcw className={detailLoadingPath ? "spin" : ""} size={18} />
+                  <h3>{detailError || "正在加载论文拆解与代码"}</h3>
+                  <p>列表索引已加载，完整问题拆解、实验检查和代码骨架会按详情分片按需加载。</p>
+                </section>
+              )}
             </aside>
           )}
         </div>
